@@ -1,0 +1,75 @@
+@model IEnumerable<FikirHavuzu.Entity.Entities.User>
+@{
+    ViewData["Title"] = "Yetki Yönetimi";
+    var permissions = ViewBag.Permissions as IEnumerable<FikirHavuzu.Entity.Entities.Permission> ?? new List<FikirHavuzu.Entity.Entities.Permission>();
+    var userPermissionMap = ViewBag.UserPermissionMap as Dictionary<int, List<int>> ?? new Dictionary<int, List<int>>();
+}
+
+<div class="container-fluid px-0">
+    <div class="mb-4">
+        <h3 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -0.02em;">🛡️ Yetki Yönetimi</h3>
+        <p class="mb-0" style="color: var(--text-secondary); font-size: 0.95rem;">Kurum çalışanlarına modül bazlı (Kullanıcı Yönetimi, Fikir Değerlendirme, Yetki Yönetimi) roller tanımlayın.</p>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 py-2 px-3 mb-4" style="font-size: 0.9rem;" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 py-2 px-3 mb-4" style="font-size: 0.9rem;" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="flat-card p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="clean-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Sicil No & Çalışan</th>
+                        <th>E-posta</th>
+                        @foreach (var perm in permissions)
+                        {
+                            <th class="text-center">@perm.Name</th>
+                        }
+                        <th class="text-end">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        var userPerms = userPermissionMap.ContainsKey(user.Id) ? userPermissionMap[user.Id] : new List<int>();
+                        <tr>
+                            <form action="/Permission/Update" method="post">
+                                <input type="hidden" name="targetUserId" value="@user.Id" />
+                                <td>
+                                    <div class="fw-semibold" style="color: var(--text-primary);">@user.FirstName @user.LastName</div>
+                                    <div class="text-muted font-monospace" style="font-size: 0.78rem;">@user.RegistrationNumber</div>
+                                </td>
+                                <td style="color: var(--text-secondary); font-size: 0.85rem;">@user.Email</td>
+                                @foreach (var perm in permissions)
+                                {
+                                    bool hasPerm = userPerms.Contains(perm.Id);
+                                    bool isOwnPermissionManagement = (user.Id == ViewBag.CurrentUserId && perm.Name == "PermissionManagement");
+                                    <td class="text-center">
+                                        <input class="form-check-input" type="checkbox" name="permissionIds" value="@perm.Id" 
+                                               @(hasPerm ? "checked" : "") 
+                                               @(isOwnPermissionManagement ? "onclick=\"return false;\" style=\"opacity: 0.5; cursor: not-allowed;\" title=\"Kendi yetkinizi kaldıramazsınız\"" : "") />
+                                    </td>
+                                }
+                                <td class="text-end">
+                                    <button type="submit" class="btn btn-sm btn-brand py-1 px-3">Güncelle</button>
+                                </td>
+                            </form>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

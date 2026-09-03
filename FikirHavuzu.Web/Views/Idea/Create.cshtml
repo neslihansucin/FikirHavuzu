@@ -1,0 +1,65 @@
+@{
+    ViewData["Title"] = "Yeni Fikir Ekle";
+}
+
+<div class="container-fluid px-0">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="flat-card p-4">
+                <div class="mb-4">
+                    <h4 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -0.01em;">✨ Yeni Fikir Önerisi</h4>
+                    <p class="mb-0" style="color: var(--text-secondary); font-size: 0.9rem;">Kurumumuzun geleceğine yön verecek yenilikçi fikrinizi bizimle paylaşın.</p>
+                </div>
+
+                @if (ViewBag.ErrorMessage != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show rounded-3 py-2 px-3 mb-4" style="font-size: 0.9rem;" role="alert">
+                        <strong>Hata!</strong> @ViewBag.ErrorMessage
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <form action="/Idea/Create" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Fikir Başlığı *</label>
+                        <input type="text" name="title" class="form-control form-control-sm" placeholder="Örn: Müşteri Geri Bildirim Süreçlerinin Yapay Zeka ile Otomasyonu" required />
+                        <div class="form-text" style="font-size: 0.78rem;">Fikrinizi özetleyen net ve dikkat çekici bir başlık girin.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Kategori *</label>
+                        <select name="categoryId" class="form-select" asp-items="ViewBag.Categories" required>
+                            <option value="">-- Lütfen Bir Kategori Seçin --</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Amaçlanan Kurumsal Fayda / Kazanım *</label>
+                        <textarea name="intendedBenefit" class="form-control" rows="3" placeholder="Bu fikir hayata geçtiğinde ne gibi bir tasarruf, hız veya verimlilik sağlayacak?" required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Detaylı Açıklama *</label>
+                        <textarea name="description" class="form-control" rows="5" placeholder="Fikrinizin uygulanma adımlarını, yöntemini ve tüm detaylarını açıklayın..." required></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Ek Dokümanlar / Belgeler (İsteğe Bağlı)</label>
+                        <input type="file" name="files" class="form-control" multiple />
+                        <div class="form-text" style="font-size: 0.78rem;">Fikrinizi destekleyen PDF, Word, Excel, görsel vb. dosyaları çoklu olarak seçip yükleyebilirsiniz.</div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-end gap-2 pt-3" style="border-top: 1px solid var(--border-subtle);">
+                        <a href="/Idea/MyIdeas" class="btn btn-sm btn-secondary-custom px-3">İptal</a>
+                        <button type="submit" name="submitAction" value="draft" class="btn btn-sm btn-secondary-custom px-3">
+                            <i class="bi bi-file-earmark-text me-1"></i> Taslak Olarak Kaydet
+                        </button>
+                        <button type="submit" name="submitAction" value="publish" class="btn btn-sm btn-brand px-3">
+                            <i class="bi bi-send me-1"></i> Fikri Havuza At
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

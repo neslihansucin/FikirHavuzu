@@ -1,0 +1,990 @@
+@inject FikirHavuzu.Business.Services.IUserService UserService
+@{
+    var isUserManagement = false;
+    var isPermissionManagement = false;
+    var isIdeaEvaluation = false;
+    var fullName = "";
+    var profilePicUrl = "";
+
+    if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        fullName = User.Identity.Name;
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim != null)
+        {
+            int userId = int.Parse(userIdClaim);
+            isUserManagement = await UserService.HasPermissionAsync(userId, "UserManagement");
+            isPermissionManagement = await UserService.HasPermissionAsync(userId, "PermissionManagement");
+            isIdeaEvaluation = await UserService.HasPermissionAsync(userId, "IdeaEvaluation");
+
+            var currentUser = await UserService.GetUserByIdAsync(userId);
+            profilePicUrl = currentUser?.ProfilePictureUrl ?? "";
+        }
+    }
+
+    var initials = "";
+    if (!string.IsNullOrWhiteSpace(fullName))
+    {
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            initials = $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+        }
+        else if (parts.Length == 1 && parts[0].Length > 0)
+        {
+            initials = parts[0].Substring(0, 1).ToUpper();
+        }
+    }
+    if (string.IsNullOrEmpty(initials)) initials = "U";
+
+    bool isManagementUser = isUserManagement || isPermissionManagement || isIdeaEvaluation;
+
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Fikir Havuzu</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="shortcut icon" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.6/dist/sweetalert2.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        :root {
+            --bg-canvas: #F4F7F5;
+            --text-primary: #1E293B;
+            --text-secondary: #475569;
+            --text-muted: #64748B;
+            --border-subtle: #E2E8F0;
+            --border-hover: #CBD5E1;
+            --card-bg: #FFFFFF;
+            
+            --brand-primary: #3B6B54;
+            --brand-primary-hover: #2E5442;
+            --brand-primary-light: #E7F0EA;
+            
+            --badge-green-bg: #E1F2E8;
+            --badge-green-text: #194D33;
+            --badge-amber-bg: #FEF3C7;
+            --badge-amber-text: #92400E;
+            --badge-red-bg: #FEE2E2;
+            --badge-red-text: #991B1B;
+            --badge-neutral-bg: #F1F5F9;
+            --badge-neutral-text: #334155;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-canvas);
+            background: linear-gradient(rgba(244, 247, 245, 0.96), rgba(244, 247, 245, 0.94)), url('/modal-bg-watermark.svg') no-repeat center bottom / cover fixed;
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .top-navbar {
+            background-color: #FFFFFF;
+            border-bottom: 1px solid var(--border-subtle);
+            height: 62px;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+        }
+
+        @if (isPermissionManagement)
+        {
+            <text>
+            .top-navbar {
+                background-color: #1E293B;
+                border-bottom: 1px solid #334155;
+            }
+            .top-navbar .brand-text {
+                color: #FFFFFF !important;
+            }
+            .top-navbar .nav-link-custom {
+                color: #CBD5E1 !important;
+            }
+            .top-navbar .nav-link-custom:hover {
+                color: #FFFFFF !important;
+                background-color: rgba(255, 255, 255, 0.1) !important;
+            }
+            .top-navbar .nav-link-custom.active {
+                color: #FFFFFF !important;
+                background-color: rgba(255, 255, 255, 0.18) !important;
+            }
+            .top-navbar .user-name {
+                color: #FFFFFF !important;
+            }
+            </text>
+        }
+        else if (isUserManagement)
+        {
+            <text>
+            .top-navbar {
+                background-color: #1E3A2B;
+                border-bottom: 1px solid #14281E;
+            }
+            .top-navbar .brand-text {
+                color: #FFFFFF !important;
+            }
+            .top-navbar .nav-link-custom {
+                color: #E2E8F0 !important;
+            }
+            .top-navbar .nav-link-custom:hover {
+                color: #FFFFFF !important;
+                background-color: rgba(255, 255, 255, 0.1) !important;
+            }
+            .top-navbar .nav-link-custom.active {
+                color: #FFFFFF !important;
+                background-color: rgba(255, 255, 255, 0.18) !important;
+            }
+            .top-navbar .user-name {
+                color: #FFFFFF !important;
+            }
+            </text>
+        }
+        else if (isIdeaEvaluation)
+        {
+            <text>
+            .top-navbar {
+                background-color: #233D2D;
+                border-bottom: 1px solid #182B20;
+            }
+            .top-navbar .brand-text {
+                color: #FFFFFF !important;
+            }
+            .top-navbar .nav-link-custom {
+                color: #E2E8F0 !important;
+            }
+            .top-navbar .nav-link-custom:hover {
+                color: #FFFFFF !important;
+                background-color: rgba(255, 255, 255, 0.1) !important;
+            }
+            .top-navbar .nav-link-custom.active {
+                color: #FFFFFF !important;
+                background-color: rgba(255, 255, 255, 0.18) !important;
+            }
+            .top-navbar .user-name {
+                color: #FFFFFF !important;
+            }
+            </text>
+        }
+
+        .brand-text {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.01em;
+        }
+
+        .nav-links-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 28px;
+        }
+
+        .nav-link-custom {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.88rem;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-link-custom:hover {
+            color: var(--text-primary);
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-link-custom.active {
+            color: var(--brand-primary);
+            background-color: var(--brand-primary-light);
+            font-weight: 600;
+        }
+
+        .app-container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 28px 20px 80px 20px;
+        }
+
+        .flat-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .btn-brand {
+            background-color: var(--brand-primary);
+            border: 1px solid var(--brand-primary-hover);
+            color: #FFFFFF;
+            font-weight: 500;
+            font-size: 0.88rem;
+            border-radius: 6px;
+            padding: 7px 16px;
+            transition: background-color 0.15s ease;
+        }
+
+        .btn-brand:hover {
+            background-color: var(--brand-primary-hover);
+            color: #FFFFFF;
+        }
+
+        .btn-secondary-custom {
+            background-color: #FFFFFF;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.88rem;
+            border-radius: 6px;
+            padding: 7px 16px;
+            transition: all 0.15s ease;
+        }
+
+        .btn-secondary-custom:hover {
+            background-color: #F8FAFC;
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        .badge-soft-green {
+            background-color: var(--badge-green-bg);
+            color: var(--badge-green-text);
+            font-weight: 600;
+            font-size: 0.76rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(25, 77, 51, 0.15);
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-soft-amber {
+            background-color: var(--badge-amber-bg);
+            color: var(--badge-amber-text);
+            font-weight: 600;
+            font-size: 0.76rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(146, 64, 14, 0.15);
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-soft-red {
+            background-color: var(--badge-red-bg);
+            color: var(--badge-red-text);
+            font-weight: 600;
+            font-size: 0.76rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(153, 27, 27, 0.15);
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-soft-neutral {
+            background-color: var(--badge-neutral-bg);
+            color: var(--badge-neutral-text);
+            font-weight: 600;
+            font-size: 0.76rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--border-subtle);
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .clean-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        .clean-table th {
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 12px 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            background-color: #F8FAFC;
+        }
+
+        .clean-table td {
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 14px;
+            vertical-align: middle;
+        }
+
+        .clean-table tr:hover td {
+            background-color: #F8FAFC;
+        }
+
+        /* Floating Help / Tour Button */
+        .floating-help-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background-color: var(--brand-primary);
+            color: #FFFFFF;
+            border: none;
+            box-shadow: 0 4px 14px rgba(59, 107, 84, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            z-index: 1040;
+            transition: all 0.2s ease;
+        }
+
+        .floating-help-btn:hover {
+            transform: scale(1.1);
+            background-color: var(--brand-primary-hover);
+            box-shadow: 0 6px 18px rgba(59, 107, 84, 0.45);
+        }
+
+        .tour-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background-color: #CBD5E1;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .tour-dot.active {
+            background-color: var(--brand-primary);
+            width: 22px;
+            border-radius: 10px;
+        }
+
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: #FFFFFF;
+            border-top: 1px solid var(--border-subtle);
+            z-index: 1030;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .mobile-bottom-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 500;
+            gap: 2px;
+        }
+
+        .mobile-bottom-nav a.active {
+            color: var(--brand-primary);
+            font-weight: 600;
+        }
+
+        .mobile-bottom-nav a i {
+            font-size: 1.15rem;
+        }
+
+        @@media (max-width: 991px) {
+            .nav-links-wrapper {
+                display: none;
+            }
+            .mobile-bottom-nav {
+                display: flex;
+            }
+            .app-container {
+                padding-bottom: 80px;
+            }
+            .floating-help-btn {
+                bottom: 74px;
+                right: 18px;
+            }
+        }
+
+        /* Subtle Full-Bleed Logo Watermark Overlay for Modals */
+        .watermark-modal-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .watermark-modal-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('/modal-bg-watermark.svg');
+            background-repeat: no-repeat;
+            background-position: center bottom;
+            background-size: 100% 100%;
+            opacity: 0.08;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .watermark-modal-card > * {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        <header class="top-navbar">
+            <div class="d-flex align-items-center justify-content-between w-100">
+                <div class="d-flex align-items-center">
+                    <a href="/Home/Index" class="brand-text">
+                        <img src="~/favicon.svg" alt="Logo" style="width: 26px; height: 26px; border-radius: 50%;" />
+                        <span>Fikir Havuzu</span>
+                    </a>
+
+                    <nav class="nav-links-wrapper">
+                        <a class="nav-link-custom @(currentController == "Home" && currentAction == "Index" ? "active" : "")" href="/Home/Index">Ana Sayfa</a>
+                        <a class="nav-link-custom @(currentController == "Idea" && currentAction == "Showcase" ? "active" : "")" href="/Idea/Showcase">
+                            <i class="bi bi-stars text-warning"></i> Hayata Geçen Fikirler
+                        </a>
+                        <a class="nav-link-custom @(currentController == "Idea" && currentAction == "Create" ? "active" : "")" href="/Idea/Create">
+                            <i class="bi bi-plus"></i> Yeni Fikir Ekle
+                        </a>
+                        <a class="nav-link-custom @(currentController == "Idea" && currentAction == "MyIdeas" ? "active" : "")" href="/Idea/MyIdeas">Fikirlerim</a>
+
+                        @if (isIdeaEvaluation)
+                        {
+                            <span class="text-muted mx-1">|</span>
+                            <a class="nav-link-custom @(currentController == "Idea" && (currentAction == "List" || currentAction == "Details") ? "active" : "")" href="/Idea/List">Fikir ve Öneriler</a>
+                            <a class="nav-link-custom @(currentController == "Idea" && currentAction == "Withdrawn" ? "active" : "")" href="/Idea/Withdrawn">Geri Çekilen Fikirler</a>
+                        }
+                        @if (isUserManagement)
+                        {
+                            <a class="nav-link-custom @(currentController == "User" ? "active" : "")" href="/User/List">Kullanıcı Yönetimi</a>
+                        }
+                        @if (isPermissionManagement)
+                        {
+                            <a class="nav-link-custom @(currentController == "Permission" ? "active" : "")" href="/Permission/Manage">Yetki Yönetimi</a>
+                        }
+                    </nav>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <a href="/Account/Profile" class="d-flex align-items-center gap-2 flex-nowrap text-decoration-none" title="Profilim">
+                        @if (!string.IsNullOrEmpty(profilePicUrl))
+                        {
+                            <img src="@profilePicUrl" alt="Avatar" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; max-width: 32px; max-height: 32px; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.3); flex-shrink: 0; transition: transform 0.15s ease;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'" />
+                        }
+                        else
+                        {
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold shadow-sm" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; max-width: 32px; max-height: 32px; aspect-ratio: 1 / 1; background-color: var(--brand-primary-light); color: var(--brand-primary); border: 1.5px solid rgba(59, 107, 84, 0.3); font-size: 0.78rem; flex-shrink: 0; transition: transform 0.15s ease;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+                                @initials
+                            </div>
+                        }
+                        <span class="user-name small fw-semibold text-nowrap">@fullName</span>
+                        
+                        @if (isPermissionManagement)
+                        {
+                            <span class="badge" style="background-color: #0F172A; color: #FFFFFF; font-size: 0.7rem; border: 1px solid rgba(255,255,255,0.25);">👑 Sistem Yöneticisi</span>
+                        }
+                        else if (isUserManagement && isIdeaEvaluation)
+                        {
+                            <span class="badge" style="background-color: #0F172A; color: #FFFFFF; font-size: 0.7rem;">👔 Personel Sorumlusu</span>
+                            <span class="badge" style="background-color: #D97706; color: #FFFFFF; font-size: 0.7rem;">✨ Fikir Koordinatörü</span>
+                        }
+                        else if (isUserManagement)
+                        {
+                            <span class="badge" style="background-color: #0F172A; color: #FFFFFF; font-size: 0.7rem;">👔 Personel Sorumlusu</span>
+                        }
+                        else if (isIdeaEvaluation)
+                        {
+                            <span class="badge" style="background-color: #D97706; color: #FFFFFF; font-size: 0.7rem;">✨ Fikir Koordinatörü</span>
+                        }
+                    </a>
+                    <a href="/Account/Profile" class="btn btn-sm btn-secondary-custom py-1 px-2" title="Profilim">
+                        <i class="bi bi-person"></i>
+                    </a>
+                    <button type="button" class="btn btn-sm btn-secondary-custom py-1 px-2 text-danger" data-bs-toggle="modal" data-bs-target="#logoutModal" title="Çıkış Yap">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="app-container">
+            <main role="main">
+                @RenderBody()
+            </main>
+            <footer class="pt-4 mt-5 text-muted text-center" style="font-size: 0.8rem; border-top: 1px solid var(--border-subtle);">
+                <div class="d-inline-flex align-items-center justify-content-center gap-2 mb-1">
+                    <img src="~/favicon.svg" alt="Logo" style="width: 20px; height: 20px; border-radius: 50%; opacity: 0.9;" />
+                    <span>&copy; @DateTime.Now.Year - <strong>TRtek Yazılım</strong> Fikir Havuzu - Staj Projesi</span>
+                </div>
+            </footer>
+        </div>
+
+        <!-- Floating Tour Button -->
+        <button type="button" class="floating-help-btn" onclick="openSystemTour()" title="Sistem Nasıl Çalışır?">
+            <i class="bi bi-question-lg"></i>
+        </button>
+
+        <!-- Interactive System Tour Modal -->
+        <div class="modal fade" id="systemTourModal" tabindex="-1" aria-labelledby="systemTourModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+                <div class="modal-content flat-card p-4 border-0 shadow watermark-modal-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            @if (isPermissionManagement)
+                            {
+                                <span class="badge" style="background-color: #0F172A; color: #FFFFFF; font-size: 0.76rem;"><i class="bi bi-shield-lock me-1"></i> Sistem Yöneticisi Rehberi</span>
+                            }
+                            else if (isUserManagement && isIdeaEvaluation)
+                            {
+                                <span class="badge" style="background-color: #0F172A; color: #FFFFFF; font-size: 0.76rem;"><i class="bi bi-person-gear me-1"></i> Yönetici Rehberi</span>
+                            }
+                            else if (isUserManagement)
+                            {
+                                <span class="badge" style="background-color: #0F172A; color: #FFFFFF; font-size: 0.76rem;"><i class="bi bi-people me-1"></i> Personel Sorumlusu Rehberi</span>
+                            }
+                            else if (isIdeaEvaluation)
+                            {
+                                <span class="badge" style="background-color: #D97706; color: #FFFFFF; font-size: 0.76rem;"><i class="bi bi-stars me-1"></i> Fikir Koordinatörü Rehberi</span>
+                            }
+                            else
+                            {
+                                <span class="badge-soft-green px-2 py-1"><i class="bi bi-info-circle me-1"></i> Personel Rehberi</span>
+                            }
+                            <span class="text-muted small" id="tourStepBadge">Adım 1 / 4</span>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                    </div>
+
+                    @if (isPermissionManagement)
+                    {
+                        <!-- Admin Step 1 -->
+                        <div class="tour-step text-center py-2" id="tourStep1">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #E2E8F0; color: #0F172A;">
+                                <i class="bi bi-shield-check fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">1. Yetki & Rol Yönetimi</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Kurum çalışanlarına modül bazlı (Kullanıcı Yönetimi, Fikir Değerlendirme, Sistem Yöneticisi) roller tanımlayın ve yetki sınırlarını belirleyin.
+                            </p>
+                        </div>
+
+                        <!-- Admin Step 2 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep2">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #FEF3C7; color: #D97706;">
+                                <i class="bi bi-arrow-repeat fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">2. Yeniden Değerlendirme (Reopen)</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Sonuçlanmış fikirleri gerektiğinde tekrar değerlendirme sürecine alarak hakem havuzuna geri açabilir ve revizyon isteyebilirsiniz.
+                            </p>
+                        </div>
+
+                        <!-- Admin Step 3 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep3">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #FEE2E2; color: #991B1B;">
+                                <i class="bi bi-lock fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">3. Güvenlik & Audit Trail</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Kullanıcı şifre politikalarını ve fikirlerin düzenleme geçmişini (Audit Log) denetleyerek kurumsal veri bütünlüğünü ve güvenliğini sağlayın.
+                            </p>
+                        </div>
+
+                        <!-- Admin Step 4 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep4">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #E1F2E8; color: #194D33;">
+                                <i class="bi bi-cpu fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">4. Merkezi Sistem Kontrolü</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Platformun tüm kullanıcı, fikir, puanlama ve vitrin süreçlerini merkezi olarak yönetin; inovasyon akışını şeffafça izleyin.
+                            </p>
+                        </div>
+                    }
+                    else if (isUserManagement)
+                    {
+                        <!-- HR Step 1 -->
+                        <div class="tour-step text-center py-2" id="tourStep1">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #E2E8F0; color: #1E3A2B;">
+                                <i class="bi bi-person-plus fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">1. Personel Tanımlama</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Yeni çalışanları kurumsal sicil no (PER formatında), TC Kimlik No ve e-posta bilgileriyle hızlıca sisteme kaydedin.
+                            </p>
+                        </div>
+
+                        <!-- HR Step 2 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep2">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #FEF3C7; color: #D97706;">
+                                <i class="bi bi-person-lines-fill fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">2. Çalışan Yönetimi & Düzenleme</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Kurumdaki çalışanların profil ve iletişim bilgilerini görüntüleyip güncelleyin.
+                            </p>
+                        </div>
+
+                        <!-- HR Step 3 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep3">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #FEE2E2; color: #991B1B;">
+                                <i class="bi bi-person-x fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">3. Hesap Dondurma (Pasif Switch)</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Ayrılan veya pasife alınan çalışanların hesaplarını dondurarak veritabanı bütünlüğünü ve kurumsal güvenliği koruyun.
+                            </p>
+                        </div>
+
+                        <!-- HR Step 4 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep4">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: var(--brand-primary-light); color: var(--brand-primary);">
+                                <i class="bi bi-stars fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">4. Fikir Havuzu Katılımı</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Bir kurum çalışanı olarak siz de yeni önerilerinizi havuza atabilir, puan kazanabilir ve vitrin süreçlerini izleyebilirsiniz.
+                            </p>
+                        </div>
+                    }
+                    else if (isIdeaEvaluation)
+                    {
+                        <!-- Evaluator Step 1 -->
+                        <div class="tour-step text-center py-2" id="tourStep1">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #FEF3C7; color: #D97706;">
+                                <i class="bi bi-list-check fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">1. Havuz İnceleme & Filtreleme</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Kurumdan gelen tüm önerileri kategorilerine ve durumlarına göre filtreleyip kör hakemlik güvencesiyle tarafsızca inceleyin.
+                            </p>
+                        </div>
+
+                        <!-- Evaluator Step 2 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep2">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: var(--brand-primary-light); color: var(--brand-primary);">
+                                <i class="bi bi-sliders fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">2. 0-100 Objektif Değerlendirme</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Fikirleri 0-100 skalasında inceleyin. <strong>50 baraj puanını geçen</strong> fikirleri <strong>olumlu değerlendirerek</strong> personele <strong>+50 İnovasyon Puanı</strong> kazandırın; baraj altındakiler ise olumsuz değerlendirilir.
+                            </p>
+                        </div>
+
+                        <!-- Evaluator Step 3 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep3">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #FEF9C3; color: #854D0E;">
+                                <i class="bi bi-stars fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">3. Pırıltılı Fikir & Vitrin</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Olumlu değerlendirilip hayata geçirilen projeleri vitrine taşıyın; fikir sahibine <strong>+100 ek puan, plaket ve somut şirket ödülü</strong> kazandırın.
+                            </p>
+                        </div>
+
+                        <!-- Evaluator Step 4 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep4">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #E1F2E8; color: #194D33;">
+                                <i class="bi bi-trophy fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">4. İnovasyon Podyumu & Liderlik</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                İnovasyon puanı, jüri puanı ve eşitlik halinde yönetici tercihiyle kurumun zirve liderini belirleyin.
+                            </p>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Employee Step 1 -->
+                        <div class="tour-step text-center py-2" id="tourStep1">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: var(--brand-primary-light); color: var(--brand-primary);">
+                                <i class="bi bi-stars fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">1. Fikrini Havuza At</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Aklındaki yenilikçi fikri başlık, hedef fayda ve ek belgelerle sisteme gir. İster taslak olarak sakla, ister doğrudan havuza at.
+                            </p>
+                        </div>
+
+                        <!-- Employee Step 2 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep2">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #FEF3C7; color: #D97706;">
+                                <i class="bi bi-award fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">2. Değerlendirme & Puanlama</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Fikir Koordinatörleri önerini 0-100 arasında inceler. <strong>50 baraj puanını geçen</strong> fikirler <strong>olumlu değerlendirilir</strong> ve sana <strong>+50 İnovasyon Puanı</strong> kazandırır; baraj altındakiler ise olumsuz değerlendirilir.
+                            </p>
+                        </div>
+
+                        <!-- Employee Step 3 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep3">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #FEF9C3; color: #854D0E;">
+                                <i class="bi bi-stars fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">3. Pırıltılı Fikirler & Ödüllendirme</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Kurum bünyesinde hayata geçen projeler vitrinde sergilenir. Fikir sahibine <strong>+100 İnovasyon Puanı ve Başarı Plaketi</strong> verilir; ayrıca <strong>nakit prim, hediye çeki veya +1-2 gün ekstra inovasyon izni</strong> gibi somut ödüllerle takdir edilir.
+                            </p>
+                        </div>
+
+                        <!-- Employee Step 4 -->
+                        <div class="tour-step text-center py-2 d-none" id="tourStep4">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background-color: #E1F2E8; color: #194D33;">
+                                <i class="bi bi-trophy fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold mb-2" style="color: var(--text-primary);">4. İnovasyon Liderliği & Rozetler</h5>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                Puanlarını katla, İnovasyon Rozetlerini topla ve puan/jüri sıralamasında kurumun zirvesindeki tek <strong>👑 İnovasyon Lideri</strong> unvanını kazan!
+                            </p>
+                        </div>
+                    }
+
+                    <!-- Tour Controls -->
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-2" style="border-color: var(--border-subtle) !important;">
+                        <button type="button" class="btn btn-sm btn-secondary-custom px-3" id="tourPrevBtn" onclick="prevTourStep()" disabled>
+                            <i class="bi bi-arrow-left me-1"></i> Geri
+                        </button>
+                        
+                        <div class="d-flex gap-1">
+                            <span class="tour-dot active" id="dot1"></span>
+                            <span class="tour-dot" id="dot2"></span>
+                            <span class="tour-dot" id="dot3"></span>
+                            <span class="tour-dot" id="dot4"></span>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-brand px-3" id="tourNextBtn" onclick="nextTourStep()">
+                            İleri <i class="bi bi-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+                <div class="modal-content flat-card p-3 border-0 shadow-sm" style="border: 1px solid var(--border-subtle) !important;">
+                    <div class="modal-body text-center py-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 48px; height: 48px; background-color: var(--badge-red-bg); color: var(--badge-red-text);">
+                            <i class="bi bi-box-arrow-right fs-4"></i>
+                        </div>
+                        <h6 class="fw-bold mb-1" style="color: var(--text-primary);">Çıkış Yap</h6>
+                        <p class="text-muted small mb-0">Oturumunuzu sonlandırmak istediğinize emin misiniz?</p>
+                    </div>
+                    <div class="modal-footer border-0 d-flex justify-content-center gap-2 pt-0 pb-2">
+                        <button type="button" class="btn btn-sm btn-secondary-custom px-3" data-bs-dismiss="modal">Vazgeç</button>
+                        <a href="/Account/Logout" class="btn btn-sm btn-danger px-3 fw-medium">Evet, Çıkış Yap</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="mobile-bottom-nav">
+            <a href="/Home/Index" class="@(currentController == "Home" ? "active" : "")">
+                <i class="bi bi-house"></i>
+                <span>Ana Sayfa</span>
+            </a>
+            <a href="/Idea/MyIdeas" class="@(currentController == "Idea" && currentAction == "MyIdeas" ? "active" : "")">
+                <i class="bi bi-journal-text"></i>
+                <span>Fikirlerim</span>
+            </a>
+            <a href="/Idea/Create" class="@(currentController == "Idea" && currentAction == "Create" ? "active" : "")">
+                <i class="bi bi-plus-circle-fill" style="color: var(--brand-primary);"></i>
+                <span>Yeni Ekle</span>
+            </a>
+            <a href="/Idea/Showcase" class="@(currentController == "Idea" && currentAction == "Showcase" ? "active" : "")">
+                <i class="bi bi-stars"></i>
+                <span>Fikirler</span>
+            </a>
+            <a href="/Account/Profile" class="@(currentController == "Account" ? "active" : "")">
+                <i class="bi bi-person"></i>
+                <span>Profil</span>
+            </a>
+        </nav>
+    }
+    else
+    {
+        <div class="w-100">
+            <main role="main">
+                @RenderBody()
+            </main>
+        </div>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.6/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        let currentTourStep = 1;
+        const totalTourSteps = 4;
+
+        function openSystemTour() {
+            currentTourStep = 1;
+            renderTourStep();
+            const modal = new bootstrap.Modal(document.getElementById('systemTourModal'));
+            modal.show();
+        }
+
+        function nextTourStep() {
+            if (currentTourStep < totalTourSteps) {
+                currentTourStep++;
+                renderTourStep();
+            } else {
+                const modalEl = document.getElementById('systemTourModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+        }
+
+        function prevTourStep() {
+            if (currentTourStep > 1) {
+                currentTourStep--;
+                renderTourStep();
+            }
+        }
+
+        function renderTourStep() {
+            for (let i = 1; i <= totalTourSteps; i++) {
+                const stepEl = document.getElementById('tourStep' + i);
+                const dotEl = document.getElementById('dot' + i);
+                if (stepEl) {
+                    if (i === currentTourStep) {
+                        stepEl.classList.remove('d-none');
+                    } else {
+                        stepEl.classList.add('d-none');
+                    }
+                }
+                if (dotEl) {
+                    if (i === currentTourStep) {
+                        dotEl.classList.add('active');
+                    } else {
+                        dotEl.classList.remove('active');
+                    }
+                }
+            }
+
+            document.getElementById('tourStepBadge').innerText = 'Adım ' + currentTourStep + ' / ' + totalTourSteps;
+            document.getElementById('tourPrevBtn').disabled = currentTourStep === 1;
+            
+            const nextBtn = document.getElementById('tourNextBtn');
+            if (currentTourStep === totalTourSteps) {
+                nextBtn.innerHTML = 'Anladım, Başla! 🚀';
+                nextBtn.className = 'btn btn-sm btn-brand px-3 fw-bold';
+            } else {
+                nextBtn.innerHTML = 'İleri <i class="bi bi-arrow-right ms-1"></i>';
+                nextBtn.className = 'btn btn-sm btn-brand px-3';
+            }
+        }
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        <script>
+            const jsConfetti = new JSConfetti();
+
+            function checkNotifications() {
+                $.get('/Notification/GetUnread', function (res) {
+                    if (res.success && res.data && res.data.length > 0) {
+                        let notif = res.data[0];
+                        showNotificationPopup(notif);
+                    }
+                });
+            }
+
+            function showNotificationPopup(notif) {
+                let isBigSurprise = notif.isImplemented;
+                let isEvaluated = notif.isEvaluated;
+                
+                if (isBigSurprise) {
+                    jsConfetti.addConfetti({
+                        emojis: ['✨', '🚀', '🌟', '💎', '🏆'],
+                        confettiNumber: 100,
+                    });
+                } else if (isEvaluated) {
+                    let scoreMatch = notif.message.match(/Puanınız:\s*(\d+)/);
+                    if(scoreMatch && parseInt(scoreMatch[1]) >= 50) {
+                        jsConfetti.addConfetti({
+                            confettiColors: ['#4ade80', '#22c55e', '#16a34a', '#fbbf24'],
+                            confettiNumber: 80,
+                        });
+                    }
+                }
+
+                Swal.fire({
+                    title: isBigSurprise ? '🌟 Harika Bir Haber!' : '🔔 Yeni Bildirim',
+                    text: notif.message,
+                    icon: isBigSurprise ? 'success' : 'info',
+                    confirmButtonText: isBigSurprise ? 'Muhteşem!' : 'Tamam',
+                    confirmButtonColor: '#3B6B54',
+                    backdrop: isBigSurprise ? `rgba(217, 119, 6, 0.4)` : `rgba(0,0,0,0.5)`,
+                    allowOutsideClick: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.post('/Notification/MarkAsRead', { id: notif.id }, function () {
+                            // Okunduktan sonra diğer bekleyen bildirimleri de göstermek için 1.5 sn sonra tekrar kontrol et
+                            setTimeout(checkNotifications, 1500);
+                        });
+                    }
+                });
+            }
+
+            $(document).ready(function () {
+                // Sayfa yüklendiğinde 1.5 saniye sonra kontrol et (sayfa geçişi sırasında hemen çıkmasın diye)
+                setTimeout(checkNotifications, 1500);
+                // Sonraki her 15 saniyede bir arkadan kontrol et
+                setInterval(checkNotifications, 15000);
+            });
+        </script>
+    }
+</body>
+</html>

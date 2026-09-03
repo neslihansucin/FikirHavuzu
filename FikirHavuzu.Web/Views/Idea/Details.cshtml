@@ -1,0 +1,436 @@
+@model FikirHavuzu.Entity.Entities.Idea
+@{
+    ViewData["Title"] = "Fikir Detayı";
+    bool isEvaluator = ViewBag.IsEvaluator == true;
+    bool hideAuthor = ViewBag.HideAuthor == true;
+    bool isAuthor = ViewBag.IsAuthor == true;
+    bool isSuperAdmin = ViewBag.IsSuperAdmin == true;
+}
+
+<style>
+    /* Custom Range Slider Thumb Styling */
+    input[type=range].score-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+        background: #E2E8F0;
+        outline: none;
+        transition: background 0.2s ease;
+    }
+    input[type=range].score-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #3B6B54;
+        cursor: pointer;
+        border: 2px solid #FFFFFF;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.18);
+        transition: all 0.2s ease;
+    }
+    input[type=range].score-slider::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #3B6B54;
+        cursor: pointer;
+        border: 2px solid #FFFFFF;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.18);
+        transition: all 0.2s ease;
+    }
+    /* 100/100 Glowing Star Thumb */
+    input[type=range].score-slider.sparkle-thumb::-webkit-slider-thumb {
+        background: #F59E0B;
+        border: 2px solid #FEF3C7;
+        box-shadow: 0 0 12px #F59E0B, 0 0 24px #FBBF24, 0 0 35px #FDE68A;
+        transform: scale(1.25);
+    }
+    input[type=range].score-slider.sparkle-thumb::-moz-range-thumb {
+        background: #F59E0B;
+        border: 2px solid #FEF3C7;
+        box-shadow: 0 0 12px #F59E0B, 0 0 24px #FBBF24, 0 0 35px #FDE68A;
+        transform: scale(1.25);
+    }
+</style>
+
+<div class="container-fluid px-0">
+    <div class="mb-4">
+        <h3 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -0.02em;">🔍 Fikir Detayı</h3>
+        <p class="mb-0" style="color: var(--text-secondary); font-size: 0.95rem;">Öneriyi inceleyin, ek belgeleri görüntüleyin ve değerlendirme yapın.</p>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 py-2 px-3 mb-4" style="font-size: 0.9rem;" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 py-2 px-3 mb-4" style="font-size: 0.9rem;" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="flat-card mb-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <span class="badge-soft-neutral mb-2 d-inline-block">@(Model.Category?.Name ?? "Diğer")</span>
+                        <h4 class="fw-bold mb-0" style="color: var(--text-primary); letter-spacing: -0.01em;">
+                            @Model.Title
+                            @if (Model.IsEdited)
+                            {
+                                <span class="badge-soft-neutral ms-1" style="font-size: 0.7rem;"><i class="bi bi-pencil me-1"></i> Düzenlendi</span>
+                            }
+                        </h4>
+                    </div>
+                    <div class="ms-3 text-nowrap align-self-start">
+                        @if (Model.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Draft)
+                        {
+                            <span class="badge-soft-neutral"><i class="bi bi-file-earmark me-1"></i> Taslak</span>
+                        }
+                        else if (Model.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Implemented)
+                        {
+                            <span class="badge-soft-amber"><i class="bi bi-stars me-1"></i> Pırıltılı Fikir</span>
+                        }
+                        else if (Model.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Approved)
+                        {
+                            <span class="badge-soft-green"><i class="bi bi-check-circle me-1"></i> Olumlu Değerlendirildi</span>
+                        }
+                        else if (Model.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Rejected)
+                        {
+                            <span class="badge-soft-red"><i class="bi bi-x-circle me-1"></i> Olumsuz Değerlendirildi</span>
+                        }
+                        else if (Model.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Withdrawn)
+                        {
+                            <span class="badge-soft-neutral"><i class="bi bi-arrow-return-left me-1"></i> Geri Çekildi</span>
+                        }
+                        else
+                        {
+                            <span class="badge-soft-amber"><i class="bi bi-hourglass-split me-1"></i> Değerlendirmede</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <span class="text-uppercase fw-semibold d-block mb-1" style="color: var(--text-muted); font-size: 0.75rem; letter-spacing: 0.04em;">🎯 Hedeflenen Fayda / Kazanım</span>
+                    <div class="p-3 rounded-2" style="background-color: #F8FAFC; border: 1px solid var(--border-subtle); color: var(--text-primary); font-size: 0.92rem;">
+                        @Model.IntendedBenefit
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <span class="text-uppercase fw-semibold d-block mb-1" style="color: var(--text-muted); font-size: 0.75rem; letter-spacing: 0.04em;">📝 Detaylı Açıklama</span>
+                    <div class="p-3 rounded-2" style="background-color: #F8FAFC; border: 1px solid var(--border-subtle); color: var(--text-primary); font-size: 0.92rem; white-space: pre-wrap;">@Model.Description</div>
+                </div>
+
+                <div class="mb-0">
+                    <span class="text-uppercase fw-semibold d-block mb-2" style="color: var(--text-muted); font-size: 0.75rem; letter-spacing: 0.04em;"><i class="bi bi-paperclip"></i> Ekli Belgeler / Dokümanlar</span>
+                    @if (Model.Documents == null || !Model.Documents.Any())
+                    {
+                        <p class="text-muted small mb-0">Bu fikir önerisine ait eklenmiş bir belge bulunmuyor.</p>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-2">
+                            @foreach (var doc in Model.Documents)
+                            {
+                                string ext = (doc.FileExtension ?? "").ToLower();
+                                bool isImage = ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".gif" || ext == ".webp";
+
+                                @if (isImage)
+                                {
+                                    <div class="d-flex justify-content-between align-items-center p-2 rounded-2 cursor-pointer" style="background-color: #F8FAFC; border: 1px solid var(--border-subtle); cursor: pointer;" onclick="openImageModal('@doc.FilePath', '@doc.FileName.Replace("'", "\\'")')">
+                                        <span class="small"><i class="bi bi-image text-success me-2"></i> @doc.FileName <span class="badge-soft-green ms-2" style="font-size: 0.68rem;">Önizle</span></span>
+                                        <span class="badge-soft-neutral" style="font-size: 0.7rem;">@((doc.FileSizeBytes / 1024.0).ToString("N2")) KB</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <a href="@doc.FilePath" class="d-flex justify-content-between align-items-center p-2 rounded-2 text-decoration-none" style="background-color: #F8FAFC; border: 1px solid var(--border-subtle); color: var(--text-primary);" target="_blank">
+                                        <span class="small"><i class="bi bi-file-earmark-arrow-down me-2" style="color: var(--brand-primary);"></i> @doc.FileName</span>
+                                        <span class="badge-soft-neutral" style="font-size: 0.7rem;">@((doc.FileSizeBytes / 1024.0).ToString("N2")) KB</span>
+                                    </a>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+            
+            <div class="flat-card mb-4">
+                <h6 class="fw-bold mb-3" style="color: var(--text-primary);">
+                    @if (isEvaluator && !isAuthor)
+                    {
+                        <span><i class="bi bi-award me-1" style="color: var(--brand-primary);"></i> Verilen Değerlendirmeler</span>
+                    }
+                    else
+                    {
+                        <span><i class="bi bi-award me-1" style="color: var(--brand-primary);"></i> Alınan Değerlendirmeler</span>
+                    }
+                </h6>
+
+                @if (Model.Evaluations == null || !Model.Evaluations.Any())
+                {
+                    <p class="text-muted small mb-0">Bu fikre henüz bir puanlama veya değerlendirme yapılmamıştır.</p>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var eval in Model.Evaluations)
+                        {
+                            <div class="p-3 rounded-2" style="background-color: #F8FAFC; border: 1px solid var(--border-subtle); border-left: 3px solid @(eval.Decision == FikirHavuzu.Entity.Enums.EvaluationDecision.Positive ? "var(--brand-primary)" : "#dc2626") !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-semibold small" style="color: var(--text-primary);">
+                                        Puan: <span class="@(eval.Decision == FikirHavuzu.Entity.Enums.EvaluationDecision.Positive ? "badge-soft-green" : "badge-soft-red")">@eval.Score / 100</span>
+                                    </span>
+                                    <small class="text-muted" style="font-size: 0.75rem;">@eval.ApprovedAt?.ToString("dd.MM.yyyy HH:mm")</small>
+                                </div>
+                                @if (isEvaluator)
+                                {
+                                    <div class="text-muted mb-1" style="font-size: 0.78rem;">
+                                        <i class="bi bi-person me-1"></i> Değerlendiren: @eval.EvaluatorUser?.FirstName @eval.EvaluatorUser?.LastName
+                                    </div>
+                                }
+                                <div class="small mt-1" style="color: var(--text-secondary);">@eval.Comment</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            @if (Model.EditHistories != null && Model.EditHistories.Any())
+            {
+                <div class="flat-card">
+                    <h6 class="fw-bold mb-3" style="color: var(--text-primary);"><i class="bi bi-clock-history me-1 text-muted"></i> Düzenleme Geçmişi (@Model.EditHistories.Count Revizyon)</h6>
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var history in Model.EditHistories.OrderByDescending(h => h.CreatedAt))
+                        {
+                            <div class="p-3 rounded-2" style="background-color: #F8FAFC; border: 1px solid var(--border-subtle);">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge-soft-neutral">@history.FieldName Alanı Güncellendi</span>
+                                    <small class="text-muted" style="font-size: 0.75rem;">@history.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <small class="text-danger fw-semibold d-block mb-1" style="font-size: 0.72rem;">Eski Değer:</small>
+                                        <div class="p-2 bg-white rounded border small text-muted" style="border-color: var(--border-subtle) !important; font-size: 0.8rem; white-space: pre-wrap;">@history.OldValue</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-success fw-semibold d-block mb-1" style="font-size: 0.72rem;">Yeni Değer:</small>
+                                        <div class="p-2 bg-white rounded border small fw-medium" style="border-color: var(--border-subtle) !important; color: var(--text-primary); font-size: 0.8rem; white-space: pre-wrap;">@history.NewValue</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-4">
+            <div class="flat-card mb-4">
+                <h6 class="fw-bold mb-3" style="color: var(--text-primary);"><i class="bi bi-person-badge me-1" style="color: var(--brand-primary);"></i> Fikir Sahibi Bilgisi</h6>
+                @if (hideAuthor)
+                {
+                    <div class="text-center py-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 50px; height: 50px; background-color: #F8FAFC; color: var(--text-secondary);">
+                            <i class="bi bi-incognito fs-4"></i>
+                        </div>
+                        <h6 class="fw-bold mb-1" style="color: var(--text-secondary);">🔒 Gizli Kimlik</h6>
+                        <p class="text-muted small mb-0">Objektif puanlama sağlamak amacıyla fikir sahibinin kimliği değerlendirme tamamlanana kadar gizlenmiştir.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-3">
+                        @if (!string.IsNullOrEmpty(Model.User?.ProfilePictureUrl))
+                        {
+                            <img src="@Model.User.ProfilePictureUrl" class="rounded-circle mb-2" style="width: 56px; height: 56px; object-fit: cover; border: 2px solid var(--brand-primary);" />
+                        }
+                        else
+                        {
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2 fw-bold" style="width: 56px; height: 56px; background-color: var(--brand-primary-light); color: var(--brand-primary); font-size: 1.2rem;">
+                                @(Model.User?.FirstName?.Substring(0, 1))@(Model.User?.LastName?.Substring(0, 1))
+                            </div>
+                        }
+                        <h6 class="fw-bold mb-0" style="color: var(--text-primary);">@Model.User?.FirstName @Model.User?.LastName</h6>
+                        <small class="text-muted d-block">Sicil No: @Model.User?.RegistrationNumber</small>
+                        <small class="text-muted d-block">E-posta: @Model.User?.Email</small>
+                    </div>
+                }
+            </div>
+
+            @if (isEvaluator && Model.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Pending)
+            {
+                @if (isAuthor && !isSuperAdmin)
+                {
+                    <div class="flat-card">
+                        <h6 class="fw-bold mb-2" style="color: var(--text-primary);"><i class="bi bi-info-circle me-1 text-warning"></i> Puanlama Kısıtı</h6>
+                        <div class="p-3 rounded-2 small" style="background-color: var(--badge-amber-bg); color: var(--badge-amber-text); border: 1px solid rgba(146,64,14,0.15);">
+                            Bu fikir size ait. Kendi fikrinizi puanlayamazsınız.
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="flat-card">
+                        <h6 class="fw-bold mb-3" style="color: var(--text-primary);"><i class="bi bi-check2-circle me-1" style="color: var(--brand-primary);"></i> Fikir Puanlama Paneli</h6>
+                        <form action="/Idea/Evaluate" method="post">
+                            <input type="hidden" name="ideaId" value="@Model.Id" />
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label small fw-semibold mb-0" style="color: var(--text-secondary);">Değerlendirme Puanı (0 - 100) *</label>
+                                    <span id="scoreDisplayBadge" class="badge-soft-green fw-bold fs-6">50 / 100</span>
+                                </div>
+                                
+                                <input type="range" class="score-slider" min="0" max="100" value="50" id="scoreRangeSlider" name="score" oninput="updateScoreUI(this.value)" />
+
+                                <div id="scoreFeedbackBox" class="text-center mt-2 py-1 px-2 rounded-2 small fw-semibold" style="background-color: #F0FDF4; color: #15803D; border: 1px solid #86EFAC; transition: all 0.2s ease;">
+                                    🟢 Uygulanabilir & Katkı Sağlayıcı Fikir
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Otomatik Karar (Eşik: 50 Puan) *</label>
+                                <select name="decision" id="decisionSelect" class="form-select form-select-sm" required>
+                                    <option value="Positive">✅ Olumlu Değerlendir (≥ 50 Puan)</option>
+                                    <option value="Negative">❌ Olumsuz Değerlendir (&lt; 50 Puan)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Değerlendirme Notu *</label>
+                                <textarea name="comment" class="form-control form-control-sm" rows="3" placeholder="Fikir hakkındaki geri bildirimlerinizi yazın..." required></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-sm btn-brand w-100 py-2">Değerlendirmeyi Gönder</button>
+                        </form>
+                    </div>
+                }
+            }
+
+            @if (isSuperAdmin && (Model.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Approved || Model.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Rejected))
+            {
+                <div class="flat-card text-center mb-4" style="border: 1px dashed var(--brand-primary) !important;">
+                    <h6 class="fw-bold mb-1" style="color: var(--text-primary);"><i class="bi bi-shield-lock me-1"></i> Sistem Yöneticisi Yetkisi</h6>
+                    <p class="text-muted small mb-3">Bu fikrin değerlendirme kararını iptal edip tekrar havuza atabilirsiniz.</p>
+                    <form action="/Idea/Reopen" method="post">
+                        <input type="hidden" name="ideaId" value="@Model.Id" />
+                        <button type="submit" class="btn btn-sm btn-secondary-custom w-100 py-2 fw-semibold">
+                            <i class="bi bi-arrow-repeat me-1"></i> 🔄 Yeniden Değerlendirmeye Al
+                        </button>
+                    </form>
+                </div>
+            }
+
+            @if (isEvaluator && Model.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Approved && !isAuthor)
+            {
+                <div class="flat-card text-center">
+                    <h6 class="fw-bold mb-1" style="color: var(--text-primary);">🚀 Pırıltılı Fikir Yap</h6>
+                    <p class="text-muted small mb-3">Bu fikir olumlu değerlendirilmiştir. Şirket süreçlerine entegre edildiyse vitrinde yayınlayabilirsiniz.</p>
+                    <form action="/Idea/Implement" method="post">
+                        <input type="hidden" name="ideaId" value="@Model.Id" />
+                        <button type="submit" class="btn btn-sm btn-brand w-100 py-2">
+                            <i class="bi bi-stars me-1"></i> Pırıltılı Fikir Olarak İşaretle
+                        </button>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content flat-card p-0 border-0 overflow-hidden">
+            <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="border-color: var(--border-subtle) !important;">
+                <h6 class="fw-bold mb-0" id="imageModalTitle" style="color: var(--text-primary);">Belge Önizleme</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body p-3 text-center bg-light">
+                <img id="imageModalSrc" src="" class="img-fluid rounded shadow-sm" style="max-height: 70vh; object-fit: contain;" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateScoreUI(val) {
+            const num = parseInt(val, 10);
+            const badge = document.getElementById('scoreDisplayBadge');
+            const select = document.getElementById('decisionSelect');
+            const slider = document.getElementById('scoreRangeSlider');
+            const feedback = document.getElementById('scoreFeedbackBox');
+
+            if (num >= 50) {
+                badge.className = 'badge-soft-green fw-bold fs-6';
+                badge.innerText = num + ' / 100 (Olumlu)';
+                select.value = 'Positive';
+            } else {
+                badge.className = 'badge-soft-red fw-bold fs-6';
+                badge.innerText = num + ' / 100 (Olumsuz)';
+                select.value = 'Negative';
+            }
+
+            // Granular 0-100 Spectrum
+            if (num === 100) {
+                slider.classList.add('sparkle-thumb');
+                feedback.style.backgroundColor = '#FEF3C7';
+                feedback.style.color = '#92400E';
+                feedback.style.borderColor = '#F59E0B';
+                feedback.innerHTML = '✨ ⭐ 100 / 100 - Kusursuz İnovasyon! ⭐ ✨';
+            } else {
+                slider.classList.remove('sparkle-thumb');
+                
+                if (num >= 90) {
+                    feedback.style.backgroundColor = '#E0F2FE';
+                    feedback.style.color = '#0369A1';
+                    feedback.style.borderColor = '#7DD3FC';
+                    feedback.innerHTML = '🌟 Örnek Gösterilecek Üst Düzey Proje!';
+                } else if (num >= 70) {
+                    feedback.style.backgroundColor = '#F0FDF4';
+                    feedback.style.color = '#15803D';
+                    feedback.style.borderColor = '#86EFAC';
+                    feedback.innerHTML = '💎 Yüksek Potansiyelli İnovasyon';
+                } else if (num >= 50) {
+                    feedback.style.backgroundColor = '#F0FDF4';
+                    feedback.style.color = '#15803D';
+                    feedback.style.borderColor = '#86EFAC';
+                    feedback.innerHTML = '🟢 Uygulanabilir & Katkı Sağlayıcı Fikir';
+                } else if (num >= 35) {
+                    feedback.style.backgroundColor = '#FEF9C3';
+                    feedback.style.color = '#854D0E';
+                    feedback.style.borderColor = '#FDE047';
+                    feedback.innerHTML = '🟡 İyi Niyetli Ancak Henüz Olgunlaşmamış (Baraj Altı)';
+                } else if (num >= 20) {
+                    feedback.style.backgroundColor = '#FFEDD5';
+                    feedback.style.color = '#9A3412';
+                    feedback.style.borderColor = '#FDBA74';
+                    feedback.innerHTML = '🟠 Detaylandırılmaya & Fizibiliteye İhtiyacı Var';
+                } else {
+                    feedback.style.backgroundColor = 'var(--badge-red-bg)';
+                    feedback.style.color = 'var(--badge-red-text)';
+                    feedback.style.borderColor = 'rgba(153, 27, 27, 0.15)';
+                    feedback.innerHTML = '🔴 Temel Revizyon Gerektirir / Kapsam Yetersiz';
+                }
+            }
+        }
+
+        function openImageModal(filePath, fileName) {
+            document.getElementById('imageModalTitle').innerText = fileName;
+            document.getElementById('imageModalSrc').src = filePath;
+            var modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+            modal.show();
+        }
+    </script>
+}

@@ -1,0 +1,234 @@
+@model IEnumerable<FikirHavuzu.Entity.Entities.User>
+@{
+    ViewData["Title"] = "Kullanıcı Yönetimi";
+    var userPermissionMap = ViewBag.UserPermissionMap as Dictionary<int, List<int>> ?? new Dictionary<int, List<int>>();
+    var userIdeaStats = ViewBag.UserIdeaStats as Dictionary<int, (int Total, int Approved, int Implemented, int Points)> ?? new Dictionary<int, (int Total, int Approved, int Implemented, int Points)>();
+    var allPermissions = ViewBag.Permissions as IEnumerable<FikirHavuzu.Entity.Entities.Permission> ?? new List<FikirHavuzu.Entity.Entities.Permission>();
+    bool isSuperAdmin = ViewBag.IsSuperAdmin == true;
+    int currentUserId = ViewBag.CurrentUserId != null ? (int)ViewBag.CurrentUserId : 0;
+
+    int userMgmtPermId = allPermissions.FirstOrDefault(p => p.Name.Contains("UserManagement") || p.Name.Contains("Kullanıcı"))?.Id ?? 1;
+    int ideaEvalPermId = allPermissions.FirstOrDefault(p => p.Name.Contains("IdeaEvaluation") || p.Name.Contains("Değerlendirme"))?.Id ?? 2;
+    int permMgmtPermId = allPermissions.FirstOrDefault(p => p.Name.Contains("PermissionManagement") || p.Name.Contains("Yetki"))?.Id ?? 3;
+}
+
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -0.02em;">👥 Kullanıcı Yönetimi</h3>
+            <p class="mb-0" style="color: var(--text-secondary); font-size: 0.95rem;">Kurum çalışanlarını listeleyin, yeni çalışan tanımlayın veya hesap durumlarını düzenleyin.</p>
+        </div>
+        <div>
+            <a href="/User/Create" class="btn btn-sm btn-brand"><i class="bi bi-person-plus me-1"></i> Yeni Çalışan Ekle</a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 py-2 px-3 mb-4" style="font-size: 0.9rem;" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 py-2 px-3 mb-4" style="font-size: 0.9rem;" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- HR Innovation Analytics Bar -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="flat-card p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-uppercase fw-semibold" style="color: var(--text-muted); font-size: 0.72rem; letter-spacing: 0.04em;">Toplam Çalışan</span>
+                        <h4 class="fw-bold my-1" style="color: var(--text-primary);">@Model.Count()</h4>
+                        <small class="text-muted" style="font-size: 0.75rem;">Kayıtlı Personel</small>
+                    </div>
+                    <div class="p-2 rounded-3" style="background-color: var(--bg-canvas); color: var(--brand-primary);">
+                        <i class="bi bi-people fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="flat-card p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-uppercase fw-semibold" style="color: var(--text-muted); font-size: 0.72rem; letter-spacing: 0.04em;">Aktif Fikir Sunanlar</span>
+                        <h4 class="fw-bold my-1" style="color: var(--brand-primary);">@ViewBag.ActiveContributorsCount</h4>
+                        <small class="text-muted" style="font-size: 0.75rem;">%@(Model.Any() ? (int)Math.Round((double)ViewBag.ActiveContributorsCount / Model.Count() * 100) : 0) Katılım Oranı</small>
+                    </div>
+                    <div class="p-2 rounded-3" style="background-color: var(--brand-primary-light); color: var(--brand-primary);">
+                        <i class="bi bi-stars fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="flat-card p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-uppercase fw-semibold" style="color: var(--text-muted); font-size: 0.72rem; letter-spacing: 0.04em;">Olumlu Fikri Olanlar</span>
+                        <h4 class="fw-bold my-1" style="color: var(--badge-green-text);">@ViewBag.ApprovedContributorsCount</h4>
+                        <small class="text-muted" style="font-size: 0.75rem;">Onaylanan Personel</small>
+                    </div>
+                    <div class="p-2 rounded-3" style="background-color: var(--badge-green-bg); color: var(--badge-green-text);">
+                        <i class="bi bi-check2-circle fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="flat-card p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-uppercase fw-semibold" style="color: var(--text-muted); font-size: 0.72rem; letter-spacing: 0.04em;">Kurum İnovasyon Puanı</span>
+                        <h4 class="fw-bold my-1" style="color: var(--badge-amber-text);">@ViewBag.TotalOrganizationPoints</h4>
+                        <small class="text-muted" style="font-size: 0.75rem;">Toplam Üretilen Değer</small>
+                    </div>
+                    <div class="p-2 rounded-3" style="background-color: var(--badge-amber-bg); color: var(--badge-amber-text);">
+                        <i class="bi bi-trophy fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flat-card p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="clean-table mb-0 text-nowrap align-middle">
+                <thead>
+                    <tr>
+                        <th class="text-nowrap">Sicil No</th>
+                        <th class="text-nowrap">Çalışan Bilgisi</th>
+                        <th class="text-nowrap">Rol / Unvan</th>
+                        <th class="text-center text-nowrap">Fikir Sayısı</th>
+                        <th class="text-center text-nowrap">Olumlu Fikir</th>
+                        <th class="text-center text-nowrap">İnovasyon Puanı</th>
+                        <th class="text-nowrap">Durum</th>
+                        <th class="text-end text-nowrap">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        var userPermIds = userPermissionMap.ContainsKey(user.Id) ? userPermissionMap[user.Id] : new List<int>();
+                        bool isUserSuperAdmin = userPermIds.Contains(permMgmtPermId);
+                        bool isUserHR = userPermIds.Contains(userMgmtPermId);
+                        bool isUserEvaluator = userPermIds.Contains(ideaEvalPermId);
+
+                        bool canEdit = isSuperAdmin || !isUserSuperAdmin;
+
+                        var stats = userIdeaStats.ContainsKey(user.Id) ? userIdeaStats[user.Id] : (0, 0, 0, 0);
+
+                        <tr>
+                            <td class="fw-bold font-monospace text-nowrap" style="color: var(--text-primary);">@user.RegistrationNumber</td>
+                            <td class="fw-semibold text-nowrap" style="color: var(--text-primary);">
+                                <div class="d-inline-flex align-items-center gap-2 text-nowrap">
+                                    @if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+                                    {
+                                        <img src="@user.ProfilePictureUrl" class="rounded-circle" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; aspect-ratio: 1/1; object-fit: cover; flex-shrink: 0;" />
+                                    }
+                                    else
+                                    {
+                                        var uInitials = (string.IsNullOrEmpty(user.FirstName) ? "" : user.FirstName.Substring(0, 1)) + (string.IsNullOrEmpty(user.LastName) ? "" : user.LastName.Substring(0, 1));
+                                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; aspect-ratio: 1/1; background-color: var(--brand-primary-light); color: var(--brand-primary); font-size: 0.72rem; flex-shrink: 0;">
+                                            @(string.IsNullOrEmpty(uInitials) ? "U" : uInitials.ToUpper())
+                                        </div>
+                                    }
+                                    <div>
+                                        <div class="text-nowrap" style="line-height: 1.2;">
+                                            @user.FirstName @user.LastName
+                                            @if (user.Id == currentUserId)
+                                            {
+                                                <span class="badge-soft-neutral text-muted fw-semibold ms-1" style="font-size: 0.7rem; padding: 1px 5px;">(Siz)</span>
+                                            }
+                                        </div>
+                                        <div class="text-muted fw-normal" style="font-size: 0.75rem;">@user.Email</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-nowrap">
+                                @if (isUserSuperAdmin)
+                                {
+                                    <span class="badge-soft-neutral fw-bold text-nowrap" style="background-color: #1E293B; color: #FFFFFF;"><i class="bi bi-shield-lock-fill me-1"></i> Sistem Yöneticisi</span>
+                                }
+                                else if (isUserHR && isUserEvaluator)
+                                {
+                                    <span class="badge-soft-green text-nowrap me-1">Personel Sorumlusu</span>
+                                    <span class="badge-soft-amber text-nowrap">Fikir Koordinatörü</span>
+                                }
+                                else if (isUserHR)
+                                {
+                                    <span class="badge-soft-green text-nowrap"><i class="bi bi-person-gear me-1"></i> Personel Sorumlusu</span>
+                                }
+                                else if (isUserEvaluator)
+                                {
+                                    <span class="badge-soft-amber text-nowrap"><i class="bi bi-check2-circle me-1"></i> Fikir Koordinatörü</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-soft-neutral text-nowrap">Personel</span>
+                                }
+                            </td>
+                            <td class="text-center fw-semibold text-nowrap">
+                                @if (stats.Item1 > 0)
+                                {
+                                    <span class="badge-soft-neutral text-nowrap">@stats.Item1</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">-</span>
+                                }
+                            </td>
+                            <td class="text-center fw-semibold text-nowrap">
+                                @if (stats.Item2 > 0)
+                                {
+                                    <span class="badge-soft-green text-nowrap">@stats.Item2</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">-</span>
+                                }
+                            </td>
+                            <td class="text-center fw-bold text-nowrap">
+                                @if (stats.Item4 > 0)
+                                {
+                                    <span class="badge text-nowrap" style="background-color: #FEF3C7; color: #92400E; border: 1px solid #F59E0B; font-size: 0.75rem;">@stats.Item4 Puan</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">0</span>
+                                }
+                            </td>
+                            <td class="text-nowrap">
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge-soft-green text-nowrap">Aktif</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-soft-red text-nowrap">Pasif</span>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                @if (canEdit)
+                                {
+                                    <a href="/User/Edit/@user.Id" class="btn btn-sm btn-secondary-custom py-1 px-3 text-nowrap">Düzenle</a>
+                                }
+                                else
+                                {
+                                    <span class="badge-soft-neutral text-nowrap d-inline-flex align-items-center gap-1" title="Bu hesap sadece Sistem Yöneticisi tarafından düzenlenebilir."><i class="bi bi-shield-lock me-1"></i> Korumalı</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,419 @@
+@model IEnumerable<FikirHavuzu.Entity.Entities.Idea>
+@{
+    ViewData["Title"] = "Pırıltılı Fikirler Vitrini";
+    bool canManageShowcase = ViewBag.CanManageShowcase == true;
+    var categories = ViewBag.Categories as IEnumerable<FikirHavuzu.Entity.Entities.Category> ?? new List<FikirHavuzu.Entity.Entities.Category>();
+    int? currentCategoryId = ViewBag.CurrentCategoryId as int?;
+    string currentSearch = ViewBag.CurrentSearch as string ?? "";
+    string currentSort = ViewBag.CurrentSort as string ?? "date_desc";
+
+    var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    int currentUserId = userIdClaim != null ? int.Parse(userIdClaim) : 0;
+
+    // Group all implemented ideas to calculate full leaderboard and podium
+    var allImplementedIdeas = ViewBag.AllImplementedIdeas as IEnumerable<FikirHavuzu.Entity.Entities.Idea> ?? new List<FikirHavuzu.Entity.Entities.Idea>();
+    var allInnovators = allImplementedIdeas
+        .GroupBy(i => new { i.UserId, Name = $"{i.User?.FirstName} {i.User?.LastName}", RegNo = i.User?.RegistrationNumber, Pic = i.User?.ProfilePictureUrl })
+        .Select(g => new { 
+            g.Key.UserId, 
+            g.Key.Name, 
+            g.Key.RegNo, 
+            g.Key.Pic, 
+            ImplementedCount = g.Count(),
+            Points = g.Count() * 150, // 50 approved + 100 implemented
+            JuryScoreSum = g.Sum(x => x.Evaluations.OrderByDescending(e => e.CreatedAt).FirstOrDefault()?.Score ?? 0)
+        })
+        .OrderByDescending(x => x.Points)
+        .ThenByDescending(x => x.JuryScoreSum)
+        .ToList();
+
+    var topInnovators = allInnovators.Take(3).ToList();
+}
+
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -0.02em;">🌟 Pırıltılı Fikirler Vitrini</h3>
+            <p class="mb-0" style="color: var(--text-secondary); font-size: 0.95rem;">Kurum çalışanları tarafından önerilen ve süreçlerimize başarıyla uygulanan parlak inovasyon projeleri.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge-soft-amber">
+                <i class="bi bi-trophy me-1"></i> Toplam @Model.Count() Pırıltılı Fikir
+            </span>
+            @if (canManageShowcase)
+            {
+                <a href="/Idea/CreateShowcase" class="btn btn-sm btn-brand">
+                    <i class="bi bi-plus me-1"></i> Pırıltılı Fikir Ekle
+                </a>
+            }
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show rounded-3 py-2 px-3 mb-4" style="font-size: 0.9rem;" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show rounded-3 py-2 px-3 mb-4" style="font-size: 0.9rem;" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (topInnovators.Any())
+    {
+        <div class="alert mb-4 p-3 rounded-3" style="background-color: #F0FDF4; border: 1px solid #BBF7D0;">
+            <div class="d-flex gap-3 align-items-center">
+                <div class="fs-2">🎁</div>
+                <div>
+                    <h6 class="fw-bold mb-1" style="color: #166534;">Yılın İnovatörleri Ödül Programı</h6>
+                    <p class="mb-0 small" style="color: #15803D;">
+                        Her yıl sonunda podyumdaki ilk 3 personelimiz <strong>"Yılın İnovatörü"</strong> seçilir. Dereceye girenlere, o dönemin dinamiklerine ve çalışanın kendi tercihlerine göre esneklik gösterebilen sürpriz motivasyon ödülleri (hediye çeki, ekstra izin vb.) sunulur.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flat-card mb-4 p-3">
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-uppercase fw-semibold" style="color: var(--text-muted); font-size: 0.75rem; letter-spacing: 0.04em;">🏆 İnovasyon Liderlik Podyumu</span>
+                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-muted" data-bs-toggle="modal" data-bs-target="#scoringInfoModal" title="Puanlama & Sıralama Nasıl Hesaplanır?">
+                        <i class="bi bi-question-circle-fill text-warning" style="font-size: 0.95rem;"></i>
+                    </button>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small" style="font-size: 0.75rem;">(İnovasyon Puanı, Jüri Puanı & Yönetici Tercihi)</span>
+                </div>
+            </div>
+            <div class="row g-3">
+                @for (int i = 0; i < topInnovators.Count; i++)
+                {
+                    var innovator = topInnovators[i];
+                    string medal = i == 0 ? "🥇" : i == 1 ? "🥈" : "🥉";
+                    string badgeLabel = i == 0 ? "👑 İnovasyon Lideri" : i == 1 ? "🌟 Pırıltılı İnovatör" : "✨ İnovatif Düşünür";
+                    string cardBg = i == 0 ? "#FEF9C3" : "#F8FAFC";
+                    string cardBorder = i == 0 ? "#FDE047" : "var(--border-subtle)";
+
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center p-3 rounded-3 h-100" style="background-color: @cardBg; border: 1px solid @cardBorder; box-shadow: @(i == 0 ? "0 4px 12px rgba(234, 179, 8, 0.15)" : "none");">
+                            <span class="me-3 fs-3">@medal</span>
+                            
+                            @if (!string.IsNullOrEmpty(innovator.Pic))
+                            {
+                                <img src="@innovator.Pic" class="rounded-circle me-3" style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; aspect-ratio: 1/1; object-fit: cover; border: 2px solid #FFFFFF; box-shadow: 0 2px 5px rgba(0,0,0,0.05);" />
+                            }
+                            else
+                            {
+                                var initials = (string.IsNullOrEmpty(innovator.Name) ? "U" : innovator.Name.Substring(0, 1));
+                                <div class="rounded-circle me-3 d-flex align-items-center justify-content-center fw-bold fs-5" style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; aspect-ratio: 1/1; background-color: var(--brand-primary-light); color: var(--brand-primary); border: 2px solid #FFFFFF; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                                    @initials.ToUpper()
+                                </div>
+                            }
+                            
+                            <div>
+                                <span class="badge-soft-amber d-inline-block mb-1" style="font-size: 0.65rem;">@badgeLabel</span>
+                                <div class="fw-bold text-truncate small" style="color: var(--text-primary);">
+                                    @innovator.Name
+                                    @if (innovator.UserId == currentUserId)
+                                    {
+                                        <span class="badge-soft-neutral text-muted fw-semibold" style="font-size: 0.68rem; padding: 1px 5px;">(Siz)</span>
+                                    }
+                                </div>
+                                <div class="text-muted" style="font-size: 0.72rem;">@innovator.Points Puan <span class="text-secondary">(Jüri: @innovator.JuryScoreSum)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (allInnovators.Count > 0)
+            {
+                <div class="mt-4 text-center">
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-4" type="button" data-bs-toggle="collapse" data-bs-target="#fullLeaderboardCollapse" aria-expanded="false" aria-controls="fullLeaderboardCollapse">
+                        Tüm Sıralamayı Göster / Gizle <span class="badge bg-secondary ms-2">Toplam @allInnovators.Count Kişi</span> <i class="bi bi-chevron-down ms-1"></i>
+                    </button>
+                </div>
+
+                <div class="collapse mt-3" id="fullLeaderboardCollapse">
+                    <div class="card card-body border-0 p-2" style="background-color: var(--bg-canvas);">
+                        <ul class="list-group list-group-flush" style="background-color: transparent;">
+                            @for (int idx = 0; idx < allInnovators.Count; idx++)
+                            {
+                                var person = allInnovators[idx];
+                                int rank = idx + 1;
+                                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-2 py-2" style="border-color: var(--border-subtle);">
+                                    <div>
+                                        <span class="fw-bold me-2 text-muted" style="display:inline-block; width: 25px;">#@rank</span>
+                                        <span class="fw-semibold" style="color: var(--text-primary); font-size: 0.9rem;">@person.Name</span>
+                                    </div>
+                                    <span class="badge" style="background-color: #FEF3C7; color: #92400E;">
+                                        @person.Points Puan
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Vitrin Filtreleme & Arama Çubuğu -->
+    <div class="flat-card mb-4 p-3">
+        <form method="get" action="/Idea/Showcase" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0" style="border-color: var(--border-subtle);"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0" placeholder="Proje başlığı, çalışan veya fayda ara..." value="@currentSearch" style="border-color: var(--border-subtle);" />
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <select name="categoryId" class="form-select form-select-sm" style="border-color: var(--border-subtle);" onchange="this.form.submit()">
+                    <option value="">Tüm Kategoriler</option>
+                    @foreach (var cat in categories)
+                    {
+                        <option value="@cat.Id" selected="@(currentCategoryId == cat.Id)">@cat.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <select name="sort" class="form-select form-select-sm" style="border-color: var(--border-subtle);" onchange="this.form.submit()">
+                    <option value="date_desc" selected="@(currentSort == "date_desc")">📅 En Yeni Eklenenler</option>
+                    <option value="score_desc" selected="@(currentSort == "score_desc")">⭐ En Yüksek Jüri Puanı</option>
+                    <option value="title_asc" selected="@(currentSort == "title_asc")">🔤 Başlığa Göre (A-Z)</option>
+                </select>
+            </div>
+
+            <div class="col-md-1 text-end">
+                @if (currentCategoryId.HasValue || !string.IsNullOrEmpty(currentSearch) || currentSort != "date_desc")
+                {
+                    <a href="/Idea/Showcase" class="btn btn-sm btn-outline-secondary w-100" title="Filtreleri Temizle"><i class="bi bi-x-circle"></i></a>
+                }
+                else
+                {
+                    <button type="submit" class="btn btn-sm btn-brand w-100">Filtrele</button>
+                }
+            </div>
+        </form>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="flat-card p-5 text-center">
+            <div class="py-3">
+                <span class="fs-1 d-block mb-2">✨</span>
+                <h5 class="fw-bold" style="color: var(--text-primary);">Aramanızla Eşleşen Pırıltılı Fikir Bulunamadı</h5>
+                @if (!string.IsNullOrEmpty(currentSearch) || currentCategoryId.HasValue)
+                {
+                    <p class="text-muted mx-auto mb-3" style="max-width: 480px; font-size: 0.9rem;">
+                        Belirlediğiniz arama kriterlerine uygun proje bulunmuyor. Farklı anahtar kelimeler deneyebilir veya filtreleri temizleyebilirsiniz.
+                    </p>
+                    <a href="/Idea/Showcase" class="btn btn-sm btn-secondary-custom">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Filtreleri Temizle
+                    </a>
+                }
+                else if (canManageShowcase)
+                {
+                    <p class="text-muted mx-auto mb-3" style="max-width: 520px; font-size: 0.9rem;">
+                        Vitrinin ışıkları kapalı çünkü henüz olumlu değerlendirilmiş bir 'Pırıltılı Fikir' yok. İlk ışığı yakmak için bekleyen önerileri değerlendirmeye başlayabilirsiniz.
+                    </p>
+                    <a href="/Idea/List" class="btn btn-sm btn-brand">
+                        <i class="bi bi-list-check me-1"></i> Fikir Listesine Git
+                    </a>
+                }
+                else
+                {
+                    <p class="text-muted mx-auto mb-3" style="max-width: 520px; font-size: 0.9rem;">
+                        Vitrinin ışıkları kapalı çünkü henüz hayata geçen bir 'Pırıltılı Fikir' yok. İlk ışığı yakmak için aklındaki fikri havuza at.
+                    </p>
+                    <a href="/Idea/Create" class="btn btn-sm btn-brand">
+                        <i class="bi bi-plus me-1"></i> Fikir Ekle
+                    </a>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex flex-column gap-3">
+            @foreach (var idea in Model)
+            {
+                var latestEval = idea.Evaluations.OrderByDescending(e => e.CreatedAt).FirstOrDefault();
+                <div class="flat-card p-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge-soft-neutral">@(idea.Category?.Name ?? "Diğer")</span>
+                                <span class="badge-soft-amber"><i class="bi bi-stars me-1"></i> Pırıltılı Fikir (+150 Puan)</span>
+                                @if (latestEval != null)
+                                {
+                                    <span class="badge-soft-green">Jüri Puanı: @latestEval.Score/100</span>
+                                }
+                            </div>
+                            <h5 class="fw-bold mb-0" style="color: var(--text-primary); letter-spacing: -0.01em;">@idea.Title</h5>
+                        </div>
+                        <a href="/Idea/Details/@idea.Id" class="btn btn-sm btn-secondary-custom">Detay</a>
+                    </div>
+
+                    <div class="p-3 rounded-2 mb-3" style="background-color: var(--bg-canvas); border: 1px solid var(--border-subtle);">
+                        <span class="fw-semibold d-block mb-1 small" style="color: var(--text-secondary);">🎯 Sağlanan Kurumsal Fayda:</span>
+                        <div class="small" style="color: var(--text-primary);">@idea.IntendedBenefit</div>
+                    </div>
+
+                    <p class="mb-3 small" style="color: var(--text-secondary); line-height: 1.6;">@idea.Description</p>
+
+                    <div class="pt-3 d-flex align-items-center justify-content-between" style="border-top: 1px solid var(--border-subtle);">
+                        <div class="d-flex align-items-center gap-2">
+                            @if (!string.IsNullOrEmpty(idea.User?.ProfilePictureUrl))
+                            {
+                                <img src="@idea.User.ProfilePictureUrl" class="rounded-circle" style="width: 30px; height: 30px; min-width: 30px; min-height: 30px; aspect-ratio: 1/1; object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold small" style="width: 30px; height: 30px; min-width: 30px; min-height: 30px; aspect-ratio: 1/1; background-color: var(--brand-primary-light); color: var(--brand-primary);">
+                                    @(idea.User?.FirstName?.Substring(0, 1))
+                                </div>
+                            }
+                            <span class="small fw-semibold" style="color: var(--text-primary);">@idea.User?.FirstName @idea.User?.LastName</span>
+                            @if (idea.UserId == currentUserId)
+                            {
+                                <span class="badge-soft-neutral text-muted fw-semibold" style="font-size: 0.72rem; padding: 2px 6px;">(Siz)</span>
+                            }
+                            @if (canManageShowcase || idea.UserId == currentUserId)
+                            {
+                                <span class="text-muted" style="font-size: 0.8rem;">(@idea.User?.RegistrationNumber)</span>
+                            }
+                        </div>
+                        <span class="text-muted" style="font-size: 0.78rem;">@idea.CreatedAt.ToString("dd.MM.yyyy")</span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Scoring and Leaderboard Info Modal -->
+<div class="modal fade" id="scoringInfoModal" tabindex="-1" aria-labelledby="scoringInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content flat-card p-4 border-0 shadow watermark-modal-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge" style="background-color: #FEF3C7; color: #92400E; font-size: 0.8rem;"><i class="bi bi-info-circle me-1"></i> Puanlama Rehberi</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+
+            <div class="modal-body p-0">
+                <h6 class="fw-bold mb-2" style="color: var(--text-primary);"><i class="bi bi-award text-warning me-1"></i> İnovasyon Puanı Nedir?</h6>
+                <p class="small text-muted mb-3">
+                    • <strong>Olumlu Fikir:</strong> Hakemden 50+ alan her onaylı fikir için <strong>+50 Puan</strong>.<br />
+                    • <strong>Pırıltılı Fikir:</strong> Hayata geçip vitrine çıkan fikir için <strong>+100 Ekstra Puan</strong> *(Fikir başına toplam 150 Puan)*.
+                </p>
+
+                <h6 class="fw-bold mb-2" style="color: var(--text-primary);"><i class="bi bi-sliders text-success me-1"></i> Jüri Puanı Nedir?</h6>
+                <p class="small text-muted mb-3">
+                    Fikir Koordinatörlerinin fikirlere verdiği 0-100 arasındaki gerçek değerlendirme notlarının toplamıdır.
+                </p>
+
+                <div class="p-3 rounded-2" style="background-color: var(--bg-canvas); border: 1px solid var(--border-subtle);">
+                    <h6 class="fw-bold mb-1 small" style="color: var(--text-primary);"><i class="bi bi-trophy text-warning me-1"></i> 3 Kademeli Sıralama & Eşitlik Bozma Kuralı:</h6>
+                    <ol class="small text-muted mb-0 ps-3">
+                        <li class="mb-1"><strong>Toplam İnovasyon Puanı</strong> en yüksek olan çalışan öne geçer.</li>
+                        <li class="mb-1">Puanlar eşitse, <strong>Hakem Jüri Puanları Toplamı</strong> yüksek olan öne geçer.</li>
+                        <li>Jüri puanları da eşitse, <strong>Yönetici Tercihi ve Stratejik Öngörü</strong> ile lider belirlenir.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="text-end pt-3 mt-3 border-top" style="border-color: var(--border-subtle) !important;">
+                <button type="button" class="btn btn-sm btn-brand px-3" data-bs-dismiss="modal">Anladım</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full Innovation Leaderboard Modal -->
+<div class="modal fade" id="fullLeaderboardModal" tabindex="-1" aria-labelledby="fullLeaderboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content flat-card p-4 border-0 shadow watermark-modal-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge" style="background-color: #1E3A2B; color: #FFFFFF; font-size: 0.82rem;">
+                        <i class="bi bi-trophy-fill text-warning me-1"></i> Genel İnovasyon Liderlik Sıralaması
+                    </span>
+                    <span class="text-muted small">(@allInnovators.Count Katılımcı)</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+
+            <div class="modal-body p-0" style="max-height: 440px; overflow-y: auto;">
+                <div class="table-responsive">
+                    <table class="clean-table mb-0 text-nowrap align-middle">
+                        <thead>
+                            <tr>
+                                <th class="text-center" style="width: 60px;">Sıra</th>
+                                <th>Çalışan</th>
+                                <th class="text-center">Hayata Geçen Fikir</th>
+                                <th class="text-center">Jüri Notu Toplamı</th>
+                                <th class="text-end">İnovasyon Puanı</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int idx = 0; idx < allInnovators.Count; idx++)
+                            {
+                                var person = allInnovators[idx];
+                                int rank = idx + 1;
+                                string rankBadge = rank == 1 ? "🥇 1." : rank == 2 ? "🥈 2." : rank == 3 ? "🥉 3." : $"#{rank}";
+                                string rankBg = rank == 1 ? "background-color: #FEF9C3; font-weight: 700;" : rank == 2 ? "background-color: #F1F5F9; font-weight: 600;" : rank == 3 ? "background-color: #FFF7ED; font-weight: 600;" : "";
+
+                                <tr style="@rankBg">
+                                    <td class="text-center font-monospace fw-bold">@rankBadge</td>
+                                    <td>
+                                        <div class="d-inline-flex align-items-center gap-2">
+                                            @if (!string.IsNullOrEmpty(person.Pic))
+                                            {
+                                                <img src="@person.Pic" class="rounded-circle" style="width: 28px; height: 28px; min-width: 28px; min-height: 28px; aspect-ratio: 1/1; object-fit: cover;" />
+                                            }
+                                            else
+                                            {
+                                                var pInit = (string.IsNullOrEmpty(person.Name) ? "U" : person.Name.Substring(0, 1));
+                                                <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold" style="width: 28px; height: 28px; min-width: 28px; min-height: 28px; aspect-ratio: 1/1; background-color: var(--brand-primary-light); color: var(--brand-primary); font-size: 0.72rem;">
+                                                    @pInit.ToUpper()
+                                                </div>
+                                            }
+                                            <span class="fw-semibold" style="color: var(--text-primary);">@person.Name</span>
+                                            @if (person.UserId == currentUserId)
+                                            {
+                                                <span class="badge-soft-neutral text-muted fw-semibold" style="font-size: 0.68rem; padding: 1px 5px;">(Siz)</span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td class="text-center fw-semibold">
+                                        <span class="badge-soft-amber">@person.ImplementedCount Fikir</span>
+                                    </td>
+                                    <td class="text-center text-muted small">@person.JuryScoreSum Puan</td>
+                                    <td class="text-end fw-bold" style="color: var(--badge-amber-text);">
+                                        <span class="badge" style="background-color: #FEF3C7; color: #92400E; border: 1px solid #F59E0B;">
+                                            @person.Points Puan
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="text-end pt-3 mt-3 border-top" style="border-color: var(--border-subtle) !important;">
+                <button type="button" class="btn btn-sm btn-secondary-custom px-3" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>

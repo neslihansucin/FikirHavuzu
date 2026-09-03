@@ -1,0 +1,71 @@
+@model IEnumerable<FikirHavuzu.Entity.Entities.Idea>
+@{
+    ViewData["Title"] = "Geri Çekilen Fikirler";
+    string currentSort = ViewBag.CurrentSort ?? "date_desc";
+}
+
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -0.02em;">📁 Geri Çekilen Fikirler</h3>
+            <p class="mb-0" style="color: var(--text-secondary); font-size: 0.95rem;">Çalışanlar tarafından değerlendirme sürecinden çekilen ve arşive alınan fikirler.</p>
+        </div>
+        <div>
+            <select class="form-select form-select-sm" style="width: auto; min-width: 150px; font-size: 0.85rem; border-color: var(--border-subtle);" onchange="window.location.href='/Idea/Withdrawn?sort=' + this.value;">
+                <option value="date_desc" selected="@(currentSort == "date_desc")">📅 En Yeni</option>
+                <option value="date_asc" selected="@(currentSort == "date_asc")">📅 En Eski</option>
+                <option value="title_asc" selected="@(currentSort == "title_asc")">🔤 Başlık (A-Z)</option>
+                <option value="title_desc" selected="@(currentSort == "title_desc")">🔤 Başlık (Z-A)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="flat-card p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="clean-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Fikir Sahibi</th>
+                        <th>Fikir Başlığı</th>
+                        <th>Kategori</th>
+                        <th>Oluşturma Tarihi</th>
+                        <th>Durum</th>
+                        <th class="text-end">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">Sistemde geri çekilmiş veya arşivlenmiş bir fikir önerisi bulunmamaktadır.</td>
+                        </tr>
+                    }
+                    @foreach (var idea in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold" style="color: var(--text-primary);">@idea.User?.FirstName @idea.User?.LastName</div>
+                                <div class="text-muted" style="font-size: 0.78rem;">@idea.User?.RegistrationNumber</div>
+                            </td>
+                            <td class="fw-semibold" style="color: var(--text-primary);">
+                                @idea.Title
+                                @if (idea.IsEdited)
+                                {
+                                    <span class="badge-soft-neutral ms-1" style="font-size: 0.68rem;">Düzenlendi</span>
+                                }
+                            </td>
+                            <td style="color: var(--text-secondary);">@(idea.Category?.Name ?? "Diğer")</td>
+                            <td class="text-muted" style="font-size: 0.82rem;">@idea.CreatedAt.ToString("dd.MM.yyyy")</td>
+                            <td>
+                                <span class="badge-soft-neutral">Geri Çekildi</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="/Idea/Details/@idea.Id" class="btn btn-sm btn-secondary-custom py-1 px-3">İncele</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

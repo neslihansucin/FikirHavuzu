@@ -1,0 +1,89 @@
+@model FikirHavuzu.Entity.Entities.Idea
+@{
+    ViewData["Title"] = "Fikri Düzenle";
+}
+
+<div class="container-fluid px-0">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="flat-card p-4">
+                <div class="mb-4">
+                    <h4 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -0.01em;">✏️ Fikir Önerisini Düzenle</h4>
+                    <p class="mb-0" style="color: var(--text-secondary); font-size: 0.9rem;">Değerlendirme öncesinde fikrinizin detaylarını ve ekli belgelerini güncelleyebilirsiniz.</p>
+                </div>
+
+                @if (ViewBag.ErrorMessage != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show rounded-3 py-2 px-3 mb-4" style="font-size: 0.9rem;" role="alert">
+                        <strong>Hata!</strong> @ViewBag.ErrorMessage
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <form action="/Idea/Edit/@Model.Id" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Fikir / Öneri Başlığı *</label>
+                        <input type="text" name="title" class="form-control form-control-sm" value="@Model.Title" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Kategori *</label>
+                        <select name="categoryId" class="form-select form-select-sm" asp-items="ViewBag.Categories" required></select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Hedeflenen Fayda / Kazanım *</label>
+                        <textarea name="intendedBenefit" class="form-control form-control-sm" rows="3" required>@Model.IntendedBenefit</textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Detaylı Açıklama *</label>
+                        <textarea name="description" class="form-control form-control-sm" rows="6" required>@Model.Description</textarea>
+                    </div>
+
+                    <div class="mb-4 pt-3" style="border-top: 1px solid var(--border-subtle);">
+                        <label class="form-label small fw-semibold d-block mb-2" style="color: var(--text-primary);">
+                            <i class="bi bi-paperclip me-1" style="color: var(--brand-primary);"></i> Ekli Belgeler / Dokümanlar
+                        </label>
+
+                        @if (Model.Documents != null && Model.Documents.Any())
+                        {
+                            <div class="mb-3">
+                                <small class="text-muted d-block mb-2">Mevcut Ekli Belgeler (Kaldırmak istediklerinizi işaretleyin):</small>
+                                <div class="d-flex flex-column gap-2">
+                                    @foreach (var doc in Model.Documents)
+                                    {
+                                        <div class="d-flex justify-content-between align-items-center p-2 rounded-2" style="background-color: var(--bg-canvas); border: 1px solid var(--border-subtle);">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-file-earmark-text text-secondary"></i>
+                                                <span class="small fw-medium" style="color: var(--text-primary);">@doc.FileName</span>
+                                                <span class="badge-soft-neutral" style="font-size: 0.7rem;">@((doc.FileSizeBytes / 1024.0).ToString("N2")) KB</span>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="deleteDocumentIds" value="@doc.Id" id="del_doc_@doc.Id">
+                                                <label class="form-check-label small text-danger" for="del_doc_@doc.Id">
+                                                    Kaldır
+                                                </label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <div class="mt-3">
+                            <label class="form-label small fw-semibold" style="color: var(--text-secondary);">Yeni Ek Belge / Görsel Ekle</label>
+                            <input type="file" name="newFiles" class="form-control form-control-sm" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp" />
+                            <div class="form-text" style="font-size: 0.78rem;">İstediğiniz kadar yeni belge veya resim seçip yükleyebilirsiniz.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3" style="border-top: 1px solid var(--border-subtle);">
+                        <a href="/Idea/MyIdeas" class="btn btn-sm btn-secondary-custom px-3">İptal</a>
+                        <button type="submit" class="btn btn-sm btn-brand px-4">Değişiklikleri Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,152 @@
+@model IEnumerable<FikirHavuzu.Entity.Entities.Idea>
+@{
+    ViewData["Title"] = "Fikir Listesi";
+    bool isSuperAdmin = ViewBag.IsSuperAdmin == true;
+    int currentUserId = ViewBag.CurrentUserId ?? 0;
+    string currentFilter = ViewBag.CurrentFilter ?? "all";
+    string currentSort = ViewBag.CurrentSort ?? "date_desc";
+}
+
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold mb-1" style="color: var(--text-primary); letter-spacing: -0.02em;">✨ Fikir ve Öneriler</h3>
+            <p class="mb-0" style="color: var(--text-secondary); font-size: 0.95rem;">Kurum çalışanları tarafından sunulan tüm inovasyon önerilerini inceleyin ve puanlayın.</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <select class="form-select form-select-sm" style="width: auto; min-width: 150px; font-size: 0.85rem; border-color: var(--border-subtle);" onchange="window.location.href='/Idea/List?filter=@currentFilter&sort=' + this.value;">
+                <option value="date_desc" selected="@(currentSort == "date_desc")">📅 En Yeni</option>
+                <option value="date_asc" selected="@(currentSort == "date_asc")">📅 En Eski</option>
+                <option value="score_desc" selected="@(currentSort == "score_desc")">⭐ En Yüksek Puan</option>
+                <option value="score_asc" selected="@(currentSort == "score_asc")">⭐ En Düşük Puan</option>
+                <option value="title_asc" selected="@(currentSort == "title_asc")">🔤 Başlık (A-Z)</option>
+                <option value="title_desc" selected="@(currentSort == "title_desc")">🔤 Başlık (Z-A)</option>
+            </select>
+            <div class="btn-group" role="group">
+                <a href="/Idea/List?filter=all&sort=@currentSort" class="btn btn-sm @(currentFilter == "all" ? "btn-brand" : "btn-secondary-custom")">Tüm</a>
+                <a href="/Idea/List?filter=pending&sort=@currentSort" class="btn btn-sm @(currentFilter == "pending" ? "btn-brand" : "btn-secondary-custom")">⏳ Bekleyen</a>
+                <a href="/Idea/List?filter=approved&sort=@currentSort" class="btn btn-sm @(currentFilter == "approved" ? "btn-brand" : "btn-secondary-custom")">✅ Olumlu</a>
+                <a href="/Idea/List?filter=rejected&sort=@currentSort" class="btn btn-sm @(currentFilter == "rejected" ? "btn-brand" : "btn-secondary-custom")">❌ Olumsuz</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="flat-card p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="clean-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Fikir Sahibi</th>
+                        <th>Fikir Başlığı</th>
+                        <th>Kategori</th>
+                        <th>Tarih</th>
+                        <th>Durum</th>
+                        <th class="text-end">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">Bu filtre kriterine uygun bir fikir önerisi bulunamadı.</td>
+                        </tr>
+                    }
+                    @foreach (var idea in Model)
+                    {
+                        bool isMyIdea = idea.UserId == currentUserId;
+                        bool isPending = idea.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Pending;
+
+                        <tr>
+                            <td>
+                                @if (isMyIdea)
+                                {
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrEmpty(idea.User?.ProfilePictureUrl))
+                                        {
+                                            <img src="@idea.User.ProfilePictureUrl" class="rounded-circle" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; aspect-ratio: 1/1; object-fit: cover;" />
+                                        }
+                                        else
+                                        {
+                                            var myInitials = $"{idea.User?.FirstName?.Substring(0, 1)}{idea.User?.LastName?.Substring(0, 1)}";
+                                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold small" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; aspect-ratio: 1/1; background-color: var(--brand-primary-light); color: var(--brand-primary); font-size: 0.75rem;">
+                                                @(string.IsNullOrEmpty(myInitials) ? "U" : myInitials.ToUpper())
+                                            </div>
+                                        }
+                                        <div>
+                                            <div class="fw-semibold" style="color: var(--text-primary);">
+                                                @idea.User?.FirstName @idea.User?.LastName 
+                                                <span class="badge-soft-neutral ms-1" style="font-size: 0.7rem;">(Siz)</span>
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.78rem;">@idea.User?.RegistrationNumber</div>
+                                        </div>
+                                    </div>
+                                }
+                                else if (isPending && !isSuperAdmin)
+                                {
+                                    <span class="badge-soft-neutral"><i class="bi bi-incognito me-1"></i> Anonim (Kör Değerlendirme)</span>
+                                }
+                                else
+                                {
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrEmpty(idea.User?.ProfilePictureUrl))
+                                        {
+                                            <img src="@idea.User.ProfilePictureUrl" class="rounded-circle" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; aspect-ratio: 1/1; object-fit: cover;" />
+                                        }
+                                        else
+                                        {
+                                            var otherInitials = $"{idea.User?.FirstName?.Substring(0, 1)}{idea.User?.LastName?.Substring(0, 1)}";
+                                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold small" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; aspect-ratio: 1/1; background-color: var(--brand-primary-light); color: var(--brand-primary); font-size: 0.75rem;">
+                                                @(string.IsNullOrEmpty(otherInitials) ? "U" : otherInitials.ToUpper())
+                                            </div>
+                                        }
+                                        <div>
+                                            <div class="fw-semibold" style="color: var(--text-primary);">@idea.User?.FirstName @idea.User?.LastName</div>
+                                            <div class="text-muted" style="font-size: 0.78rem;">@idea.User?.RegistrationNumber</div>
+                                        </div>
+                                    </div>
+                                }
+                            </td>
+                            <td class="fw-semibold" style="color: var(--text-primary);">
+                                @idea.Title
+                                @if (idea.IsEdited)
+                                {
+                                    <span class="badge-soft-neutral ms-1" style="font-size: 0.68rem;">Düzenlendi</span>
+                                }
+                            </td>
+                            <td style="color: var(--text-secondary);">@(idea.Category?.Name ?? "Diğer")</td>
+                            <td class="text-muted" style="font-size: 0.82rem;">@idea.CreatedAt.ToString("dd.MM.yyyy")</td>
+                            <td>
+                                @if (idea.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Implemented)
+                                {
+                                    <span class="badge-soft-amber"><i class="bi bi-stars me-1"></i> Pırıltılı Fikir</span>
+                                }
+                                else if (idea.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Approved)
+                                {
+                                    <span class="badge-soft-green">Olumlu</span>
+                                }
+                                else if (idea.Status == FikirHavuzu.Entity.Enums.IdeaStatus.Rejected)
+                                {
+                                    <span class="badge-soft-red">Olumsuz</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-soft-amber">Bekleyen</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                @if (isMyIdea || idea.Status != FikirHavuzu.Entity.Enums.IdeaStatus.Pending)
+                                {
+                                    <a href="/Idea/Details/@idea.Id" class="btn btn-sm btn-secondary-custom py-1 px-3">İncele</a>
+                                }
+                                else
+                                {
+                                    <a href="/Idea/Details/@idea.Id" class="btn btn-sm btn-brand py-1 px-3">İncele / Puanla</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

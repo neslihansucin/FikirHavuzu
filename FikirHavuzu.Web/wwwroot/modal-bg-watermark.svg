@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 520" width="600" height="520" preserveAspectRatio="none">
+  <defs>
+    <!-- Yıldız Altın Gradyanı -->
+    <linearGradient id="fullStarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFBEB" />
+      <stop offset="35%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#5E997B" />
+    </linearGradient>
+
+    <!-- Su Dalgaları Gradyanı -->
+    <linearGradient id="fullWaterGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7DD3FC" />
+      <stop offset="50%" stop-color="#4E876A" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Merkezden Doğan Büyük 4 Köşeli İnovasyon Yıldızı (✦) - Üstten Tam Görünür -->
+  <path d="M 300 60 
+           Q 300 190, 480 190 
+           Q 300 190, 300 320 
+           Q 300 190, 120 190 
+           Q 300 190, 300 60 Z" 
+        fill="url(#fullStarGrad)" 
+        opacity="0.9" />
+
+  <!-- Yıldız İçi İkincil Pırıltı -->
+  <circle cx="300" cy="190" r="18" fill="#FFFFFF" opacity="0.6" />
+
+  <!-- 2. Yıldızdan Aşağı Süzülen Su Damlaları -->
+  <!-- Sol Kanat Damlası -->
+  <path d="M 190 230 C 180 230, 175 250, 185 260 C 195 270, 205 260, 200 240 Z" fill="#38BDF8" opacity="0.8" />
+  
+  <!-- Sağ Kanat Damlası -->
+  <path d="M 410 230 C 420 230, 425 250, 415 260 C 405 270, 395 260, 400 240 Z" fill="#38BDF8" opacity="0.8" />
+
+  <!-- Merkez Ana Damlalar -->
+  <path d="M 300 330 C 288 345, 288 365, 300 375 C 312 365, 312 345, 300 330 Z" fill="#38BDF8" opacity="0.9" />
+  <circle cx="300" cy="305" r="4.5" fill="#38BDF8" opacity="0.75" />
+
+  <!-- 3. Kartın Altını Boydan Boya Kaplayan Dalgalı Su / Fikir Havuzu -->
+  <!-- Arka Dalga -->
+  <path d="M 0 390 Q 150 345, 300 390 T 600 390 L 600 520 L 0 520 Z" fill="url(#fullWaterGrad)" opacity="0.3" />
+  
+  <!-- Orta Dalga -->
+  <path d="M 0 420 Q 150 380, 300 420 T 600 420 L 600 520 L 0 520 Z" fill="url(#fullWaterGrad)" opacity="0.5" />
+  
+  <!-- Ön Dalga Çizgileri -->
+  <path d="M 0 410 Q 150 365, 300 410 T 600 410" fill="none" stroke="#BAE6FD" stroke-width="3.5" opacity="0.75" />
+  <path d="M 0 450 Q 150 415, 300 450 T 600 450" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.55" />
+
+  <!-- Serbest İnovasyon Kıvılcımları -->
+  <circle cx="100" cy="110" r="5" fill="#F59E0B" opacity="0.6" />
+  <circle cx="500" cy="110" r="6" fill="#F59E0B" opacity="0.7" />
+  <circle cx="230" cy="90" r="3.5" fill="#FEF08A" opacity="0.8" />
+  <circle cx="370" cy="90" r="4" fill="#FEF08A" opacity="0.8" />
+</svg>
