@@ -1,61 +1,91 @@
-# Fikir Havuzu - Kurumsal İnovasyon Yönetim Platformu
+# Fikir Havuzu 💡
 
 Fikir Havuzu, çalışanların şirket içi yeni fikir ve önerilerini paylaşabildiği, yöneticilerin bu fikirleri puanlayarak değerlendirebildiği ve başarılı bulunan fikirlerin vitrinde sergilendiği bir web uygulamasıdır.
 
-Bu proje, staj çalışması kapsamında ASP.NET Core 8.0 MVC ve 4 katmanlı mimari kullanılarak geliştirilmiştir.
+Bu proje staj çalışması kapsamında ilk olarak **ASP.NET Core MVC** ile geliştirilmiş, daha sonrasında modern yazılım geliştirme standartlarına uygun olarak **React (Next.js) + REST API** mimarisine geçirilmiştir.
 
-## Mimari Yapı ve Teknolojiler
+---
 
-Proje 4 ana katmandan oluşmaktadır:
+## 🌟 Sistem Rolleri ve Yetkiler
 
-- **FikirHavuzu.Entity:** Veritabanı model ve varlık sınıfları (Kullanıcı, Fikir, Kategori, Değerlendirme vb.).
-- **FikirHavuzu.DataAccess:** Veritabanı bağlantısı, DbContext ve veri erişim kodları.
-- **FikirHavuzu.Business:** İş kuralları, kontroller ve servisler (Kullanıcı Servisi, Fikir Servisi, E-Posta Servisi).
-- **FikirHavuzu.Web:** Kullanıcı arayüzü, sayfa kontrolleri (MVC Controller & View).
+Projede **Role-Based Access Control (RBAC)** mantığıyla çalışan bir yetkilendirme sistemi bulunmaktadır. Temel roller şunlardır:
 
-### Kullanılan Teknolojiler
+- **Sistem Yöneticisi:** Tüm panellere tam erişimi olan, kullanıcı tanımlayan ve yetki atayan ana yönetici rolüdür.
+- **Fikir Koordinatörü (Jüri):** Sisteme atılan fikirleri değerlendirme, puanlama ve onaylama yetkisine sahip yönetim ekibidir. Tarafsız değerlendirme yapılabilmesi için **fikirleri anonim olarak (fikir sahibinin ismini görmeden)** puanlarlar.
+- **Personel Sorumlusu:** Çalışan hesaplarını ve pasif/aktif durumlarını yönetme yetkisine sahip İK/Yönetim rolüdür.
+- **Personel (Standart Kullanıcı):** Sisteme giriş yaparak fikir önerebilen, kendi fikirlerinin durumunu takip edebilen standart çalışan rolüdür.
 
-- C# / .NET 8.0 ASP.NET Core MVC
-- MS SQL Server & Entity Framework Core 8.0 (Code-First)
-- Custom Cookie Authentication & BCrypt (Güvenli Şifreleme)
-- Özel Yetki Filtreleri (Rol Bazlı Erişim)
-- SmtpClient (Gmail E-Posta Entegrasyonu)
-- Bootstrap 5, HTML5, CSS3, JavaScript
+*(Tüm bu yetkiler Sistem Yöneticisi tarafından kullanıcılara dinamik olarak atanıp kaldırılabilmektedir).*
 
-> **Not:** E-posta bildirimlerini test etmek isterseniz, `FikirHavuzu.Web/appsettings.json` dosyasındaki `EmailSettings` alanına Gmail adresinizi ve Uygulama Şifrenizi tanımlayabilirsiniz.
+---
 
-## Hazır Test Hesapları
+## 📸 Projeden Görüntüler
 
-Veritabanında hazır tanımlanmış test hesapları:
+### 1. Sisteme Giriş
+Projeye giriş ekranı.
 
-| Rol                      | Sicil No / Giriş Adı | Şifre          | E-Posta                       |
-| ------------------------ | -------------------- | -------------- | ----------------------------- |
-| **Sistem Yöneticisi**    | `adm001`             | `Password123!` | admin@fikirhavuzu.com         |
-| **Personel Kullanıcısı** | `PER260901001`       | `Password123!` | mehmet.yilmaz@fikirhavuzu.com |
-| **Personel Kullanıcısı** | `PER260901002`       | `Password123!` | ayse.kaya@fikirhavuzu.com     |
-| **Personel Kullanıcısı** | `PER260901003`       | `Password123!` | ali.demir@fikirhavuzu.com     |
+<img width="1919" height="1019" alt="login" src="https://github.com/user-attachments/assets/5e42b956-61fa-4c29-be96-64ecda14738e" />
 
-_(Diğer tüm personel hesapları `PER260901004` ile `PER260901009` arasında olup hepsinin varsayılan şifresi `Password123!` olarak belirlenmiştir)._
 
-## Temel Özellikler ve Modüller
+### 2. Gösterge Paneli (Dashboard)
+Yöneticilerin veya personellerin yetkilerine göre dinamik olarak değişen, sistemdeki istatistiklerin tek bakışta göründüğü özet ekranı.
 
-### 1. Yetki Yönetimi ve Güvenlik Koruması
+<img width="1919" height="1020" alt="dashboard" src="https://github.com/user-attachments/assets/c52938bf-6e50-44f9-954a-677e86d61609" />
 
-Kullanıcılara modül bazlı yetkiler tanınır. Yöneticinin kendi yetkisini yanlışlıkla kaldırıp sistemi kilitlemesini önleyen güvenlik mekanizması mevcuttur.
 
-### 2. Otomatik Sicil Numarası ile Çalışan Ekleme
+### 3. Yeni Fikir Önerisi
+Personellerin yenilikçi fikirlerini, kategorisini belirleyip belgeler ekleyerek havuza attığı form sayfası.
 
-Sisteme yeni personel eklenirken `PER26...` formatında otomatik sicil numarası üretilir.
+<img width="1919" height="1018" alt="yenifikir" src="https://github.com/user-attachments/assets/ea287568-c883-4c16-98fa-8c683861b66d" />
 
-### 3. Fikir Takip Listesi ve Durum Rozetleri
+<img width="1919" height="1017" alt="fikirlerim" src="https://github.com/user-attachments/assets/ef40a33d-2f99-42a4-8d7c-d1399c777c98" />
 
-Eklenen fikirler durumlarına göre (Olumlu, Olumsuz, Taslak, Uygulandı) renkli rozetlerle listelenir ve takip edilir.
 
-### 4. Kullanıcı Profili ve Şifre İşlemleri
+### 4. Fikir Listeleri ve Yönetimi
+Havuzdaki fikirlerin durumlarına (Taslak, Bekleyen, Pırıltılı Fikir vb.) göre takip edildiği ve yöneticiler tarafından değerlendirildiği (onay/red) ekranlar. Jüriler (Koordinatörler) adil bir puanlama için bu listelerde fikir sahiplerini anonim (gizli) olarak görürler. Ancak sistem yöneticileri için böyle bir kısıt yoktur.
 
-Kullanıcılar profil sayfalarında inovasyon puanlarını, aktif yetkilerini görebilir ve şifrelerini güncelleyebilirler.
+<img width="1919" height="1019" alt="fikirler" src="https://github.com/user-attachments/assets/d2b7f439-814f-4ef6-90d5-135fce928c81" />
 
-## Veritabanı Tabloları
+<img width="1919" height="1018" alt="cekilenfikirler" src="https://github.com/user-attachments/assets/5c7e9607-86ed-44cc-969d-123ddf44227e" />
 
-Veritabanında (FikirHavuzuDb) ilişkisel 9 temel tablo bulunur:
-Users, Permissions, UserPermissions, Categories, Ideas, IdeaDocuments, Evaluations, IdeaEditHistories, Notifications.
+
+### 5. Pırıltılı Fikirler Vitrini (İnovasyon Podyumu)
+Kuruma değer katan, hayata geçirilmiş fikirlerin sergilendiği ve personellerin topladıkları puanlara göre sıralandığı madalyalı podyum ekranı.
+
+<img width="1919" height="1019" alt="liderlik podyumu" src="https://github.com/user-attachments/assets/277d0659-dc7e-440e-b480-3b9996d98635" />
+
+
+### 6. Kullanıcı ve Yetki Yönetimi
+Sistem yöneticisinin yeni çalışanları ekleyebildiği, hesapları aktif/pasif yapabildiği ve modül bazlı yetkilendirme (Role-Based Access Control) yapabildiği admin paneli.
+
+<img width="1919" height="1018" alt="kullanıcıyönetimi" src="https://github.com/user-attachments/assets/fe3f15e8-3e2e-4ecb-9ff5-86cd9f855c37" />
+
+<img width="1919" height="1020" alt="yetkiyönetimi" src="https://github.com/user-attachments/assets/594c521d-6720-4efe-9633-0329a59ed850" />
+
+
+### 7. Profil ve Hesap Ayarları
+Kullanıcıların kendi yetkilerini görebildiği, profil fotoğraflarını ve şifrelerini güncelleyebildiği hesap sayfası.
+
+<img width="1919" height="1019" alt="profilim" src="https://github.com/user-attachments/assets/0ed2ed68-3195-4d79-a391-0455b69f77b5" />
+
+
+---
+
+## 🛠 Kullanılan Teknolojiler
+
+**Backend & Veritabanı:**
+- C# / .NET 8.0 Web API
+- MS SQL Server & Entity Framework Core (Code-First)
+- Redis (Önbellekleme)
+- Elasticsearch (Arama ve Loglama altyapısı)
+
+**Frontend:**
+- React.js (Next.js App Router)
+- PrimeReact UI & Sakai Teması
+- i18next (Çoklu dil desteği)
+
+**DevOps & Test:**
+- Docker (Container altyapısı)
+- Jenkins (CI/CD Pipeline)
+- SonarQube (Kod kalitesi ve güvenlik analizi)
+- Selenium (UI testleri)
